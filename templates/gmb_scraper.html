@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GMB Scraper — LeadPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f; --surface: #111118; --surface2: #1a1a24; --border: #252535;
+  --accent: #00ff88; --accent2: #0066ff; --danger: #ff3366; --warn: #ffaa00;
+  --text: #e8e8f0; --muted: #666680; --font-mono: 'Space Mono', monospace; --font: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+.sidebar { position: fixed; left: 0; top: 0; width: 240px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100; }
+.logo { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
+.logo-text { font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--accent); letter-spacing: -1px; }
+.logo-sub { font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 2px; text-transform: uppercase; }
+.nav { flex: 1; padding: 16px 12px; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; transition: all 0.15s; margin-bottom: 2px; }
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(0,255,136,0.08); color: var(--accent); }
+.nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-left: auto; box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.sidebar-footer { padding: 16px 24px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+.main { margin-left: 240px; min-height: 100vh; }
+.topbar { padding: 20px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+.topbar-title { font-size: 22px; font-weight: 700; }
+.topbar-badge { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: var(--accent); padding: 4px 12px; border-radius: 20px; font-family: var(--font-mono); font-size: 11px; }
+.content { padding: 32px; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+.section { margin-bottom: 28px; }
+.section-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; }
+
+.form-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-input, .form-select {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; color: var(--text); font-family: var(--font); font-size: 14px;
+  transition: border-color 0.2s; outline: none;
+}
+.form-input:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,255,136,0.08); }
+.form-select option { background: var(--surface2); }
+
+.btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-family: var(--font); font-size: 14px; font-weight: 600; transition: all 0.15s; display: inline-flex; align-items: center; gap: 8px; }
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { background: #00dd77; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: rgba(255,51,102,0.1); color: var(--danger); border: 1px solid rgba(255,51,102,0.3); }
+.btn-danger:hover { background: var(--danger); color: white; }
+.btn-success { background: rgba(0,255,136,0.15); color: var(--accent); border: 1px solid rgba(0,255,136,0.3); }
+.btn-success:hover { background: var(--accent); color: #000; }
+
+.grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Console Log */
+.console-box {
+  background: #0a0a0a; border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px; font-family: var(--font-mono); font-size: 12px;
+  height: 280px; overflow-y: auto; color: #aaa;
+  scroll-behavior: smooth;
+}
+.console-box .log-line { padding: 2px 0; line-height: 1.6; }
+.console-box .log-ok { color: var(--accent); }
+.console-box .log-skip { color: var(--warn); }
+.console-box .log-error { color: var(--danger); }
+.console-box .log-info { color: #888; }
+.console-box .log-head { color: #ccc; font-weight: bold; }
+
+/* Status Badge */
+.status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; font-family: var(--font-mono);
+}
+.pill-idle { background: rgba(100,100,128,0.15); color: var(--muted); }
+.pill-running { background: rgba(0,255,136,0.12); color: var(--accent); border: 1px solid rgba(0,255,136,0.3); }
+.pill-done { background: rgba(0,102,255,0.12); color: var(--accent2); border: 1px solid rgba(0,102,255,0.3); }
+.pill-error { background: rgba(255,51,102,0.12); color: var(--danger); border: 1px solid rgba(255,51,102,0.3); }
+.pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulse 1.2s infinite; }
+
+/* Results table */
+.leads-table { width: 100%; border-collapse: collapse; }
+.leads-table th { padding: 10px 14px; text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+.leads-table td { padding: 11px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+.leads-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); }
+.badge-no { background: rgba(0,255,136,0.1); color: var(--accent); }
+
+.toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; font-size: 14px; max-width: 340px; transform: translateY(100px); opacity: 0; transition: all 0.3s; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: var(--accent); }
+.toast.error { border-color: var(--danger); }
+
+.empty-state { text-align: center; padding: 48px 24px; color: var(--muted); }
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+.empty-state p { font-size: 14px; }
+
+.niche-tag {
+  display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  background: rgba(0,255,136,0.07); border: 1px solid rgba(0,255,136,0.2); color: var(--accent);
+  cursor: pointer; transition: all 0.15s; font-family: var(--font-mono);
+}
+.niche-tag:hover { background: rgba(0,255,136,0.18); border-color: var(--accent); }
+
+.no-leads-tip {
+  background: rgba(255,170,0,0.07); border: 1px solid rgba(255,170,0,0.25); border-radius: 10px;
+  padding: 16px 20px; margin-top: 16px;
+}
+.no-leads-tip h4 { color: var(--warn); font-size: 13px; margin-bottom: 10px; }
+.no-leads-tip ul { font-size: 13px; color: var(--muted); padding-left: 18px; line-height: 2; }
+
+.counter-row { display: flex; gap: 24px; margin-bottom: 16px; }
+.counter-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-family: var(--font-mono); font-size: 12px; }
+.counter-pill span { color: var(--accent); font-size: 18px; font-weight: 700; margin-right: 6px; }
+
+/* Modal */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; display:flex; align-items:center; justify-content:center; }
+.modal-box { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px; max-width:560px; width:90%; }
+.modal-box h3 { font-size:16px; margin-bottom:16px; }
+.modal-box pre { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px; font-size:11px; font-family:var(--font-mono); overflow-x:auto; color:#aaa; line-height:1.6; margin:12px 0; white-space:pre-wrap; }
+.modal-close { float:right; background:none; border:none; color:var(--muted); cursor:pointer; font-size:18px; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-text">⚡ LeadPro</div>
+    <div class="logo-sub">Lead Engine v1.0</div>
+  </div>
+  <div class="nav">
+    <a href="/" class="nav-item"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/leads" class="nav-item"><span class="icon">👥</span> All Leads</a>
+    <a href="/cold-leads" class="nav-item"><span class="icon">🧊</span> Cold Leads</a>
+    <a href="/gmb-scraper" class="nav-item active"><span class="icon">🗺️</span> GMB Scraper <span class="status-dot"></span></a>
+    <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
+    <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
+    <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
+  </div>
+  <div class="sidebar-footer">LEADPRO © 2025<br>ALL SYSTEMS NOMINAL</div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">🗺️ GMB Lead Scraper</div>
+    <div id="status-badge" class="status-pill pill-idle">● IDLE</div>
+  </div>
+
+  <div class="content">
+
+    <!-- SEARCH FORM -->
+    <div class="section">
+      <div class="section-title">🔍 Search Settings</div>
+      <div class="card">
+        <div class="grid-5" style="margin-bottom:16px">
+          <div>
+            <label class="form-label">City *</label>
+            <input type="text" class="form-input" id="inp-city" placeholder="Auckland" value="Auckland">
+          </div>
+          <div>
+            <label class="form-label">Country *</label>
+            <input type="text" class="form-input" id="inp-country" placeholder="New Zealand" value="New Zealand">
+          </div>
+          <div>
+            <label class="form-label">Niche / Category *</label>
+            <input type="text" class="form-input" id="inp-niche" placeholder="plumber" value="plumber">
+          </div>
+          <div>
+            <label class="form-label">Max Leads</label>
+            <input type="number" class="form-input" id="inp-limit" value="30" min="5" max="200">
+          </div>
+          <div>
+            <label class="form-label">Service to Offer</label>
+            <select class="form-select" id="inp-service">
+              <optgroup label="── Web Development ──">
+                <option value="Website Development">Website Development</option>
+                <option value="Website Redesign">Website Redesign</option>
+                <option value="Landing Page Design">Landing Page Design</option>
+                <option value="WordPress Development">WordPress Development</option>
+                <option value="E-commerce Development (Shopify/WooCommerce)">E-commerce (Shopify/WooCommerce)</option>
+                <option value="Mobile App Development">Mobile App Development</option>
+              </optgroup>
+              <optgroup label="── SEO & Marketing ──">
+                <option value="SEO (Search Engine Optimization)">SEO</option>
+                <option value="Local SEO & Google Maps Optimization">Local SEO / GMB Optimization</option>
+                <option value="Google Ads / PPC Management">Google Ads / PPC</option>
+                <option value="Facebook & Instagram Ads">Facebook & Instagram Ads</option>
+                <option value="Digital Marketing">Digital Marketing</option>
+                <option value="Social Media Management">Social Media Management</option>
+                <option value="Content Marketing & Blogging">Content Marketing</option>
+                <option value="Email Marketing">Email Marketing</option>
+              </optgroup>
+              <optgroup label="── Design & Branding ──">
+                <option value="Logo & Brand Identity Design">Logo & Brand Identity</option>
+                <option value="UI/UX Design">UI/UX Design</option>
+                <option value="Graphic Design">Graphic Design</option>
+                <option value="Business Card & Print Design">Business Card & Print Design</option>
+              </optgroup>
+              <optgroup label="── Maintenance & Hosting ──">
+                <option value="Website Maintenance & Support">Website Maintenance</option>
+                <option value="Web Hosting & Domain Setup">Hosting & Domain Setup</option>
+                <option value="Website Speed Optimization">Speed Optimization</option>
+                <option value="Website Security & Backup">Security & Backup</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <!-- Quick niche suggestions -->
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">
+            ✅ Best niches for website dev clients (high no-website rate) — click to use:
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🔧 Home Services</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('appliance repair')">appliance repair</span>
+            <span class="niche-tag" onclick="setNiche('cleaning service')">cleaning service</span>
+            <span class="niche-tag" onclick="setNiche('handyman')">handyman</span>
+            <span class="niche-tag" onclick="setNiche('plumber')">plumber</span>
+            <span class="niche-tag" onclick="setNiche('electrician')">electrician</span>
+            <span class="niche-tag" onclick="setNiche('painter')">painter</span>
+            <span class="niche-tag" onclick="setNiche('tiler')">tiler</span>
+            <span class="niche-tag" onclick="setNiche('lawn mowing')">lawn mowing</span>
+            <span class="niche-tag" onclick="setNiche('pest control')">pest control</span>
+            <span class="niche-tag" onclick="setNiche('refrigeration repair')">refrigeration repair</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🚗 Auto & Transport</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('mobile mechanic')">mobile mechanic</span>
+            <span class="niche-tag" onclick="setNiche('auto repair shop')">auto repair shop</span>
+            <span class="niche-tag" onclick="setNiche('car detailing')">car detailing</span>
+            <span class="niche-tag" onclick="setNiche('towing service')">towing service</span>
+            <span class="niche-tag" onclick="setNiche('truck repair')">truck repair</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">💼 Professional & Local Business</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('accountant')">accountant</span>
+            <span class="niche-tag" onclick="setNiche('real estate agent')">real estate agent</span>
+            <span class="niche-tag" onclick="setNiche('insurance agent')">insurance agent</span>
+            <span class="niche-tag" onclick="setNiche('financial advisor')">financial advisor</span>
+            <span class="niche-tag" onclick="setNiche('mortgage broker')">mortgage broker</span>
+            <span class="niche-tag" onclick="setNiche('recruitment agency')">recruitment agency</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">💇 Health, Beauty & Wellness</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('barber shop')">barber shop</span>
+            <span class="niche-tag" onclick="setNiche('hair salon')">hair salon</span>
+            <span class="niche-tag" onclick="setNiche('nail salon')">nail salon</span>
+            <span class="niche-tag" onclick="setNiche('massage therapy')">massage therapy</span>
+            <span class="niche-tag" onclick="setNiche('personal trainer')">personal trainer</span>
+            <span class="niche-tag" onclick="setNiche('physiotherapy')">physiotherapy</span>
+            <span class="niche-tag" onclick="setNiche('dentist')">dentist</span>
+            <span class="niche-tag" onclick="setNiche('chiropractor')">chiropractor</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🍽️ Food & Hospitality</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('catering service')">catering service</span>
+            <span class="niche-tag" onclick="setNiche('food truck')">food truck</span>
+            <span class="niche-tag" onclick="setNiche('bakery')">bakery</span>
+            <span class="niche-tag" onclick="setNiche('butcher')">butcher</span>
+            <span class="niche-tag" onclick="setNiche('event venue')">event venue</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🏫 Education & Coaching</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('tutoring')">tutoring</span>
+            <span class="niche-tag" onclick="setNiche('driving school')">driving school</span>
+            <span class="niche-tag" onclick="setNiche('music school')">music school</span>
+            <span class="niche-tag" onclick="setNiche('martial arts')">martial arts</span>
+            <span class="niche-tag" onclick="setNiche('yoga studio')">yoga studio</span>
+            <span class="niche-tag" onclick="setNiche('dance studio')">dance studio</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🧵 Trades & Craft</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <span class="niche-tag" onclick="setNiche('tailor')">tailor</span>
+            <span class="niche-tag" onclick="setNiche('alterations')">alterations</span>
+            <span class="niche-tag" onclick="setNiche('upholstery')">upholstery</span>
+            <span class="niche-tag" onclick="setNiche('locksmith')">locksmith</span>
+            <span class="niche-tag" onclick="setNiche('jeweller')">jeweller</span>
+            <span class="niche-tag" onclick="setNiche('photographer')">photographer</span>
+            <span class="niche-tag" onclick="setNiche('videographer')">videographer</span>
+          </div>
+        </div>
+
+          <div style="font-size:11px;color:var(--muted);margin:14px 0 6px;letter-spacing:0.5px">⚕️ Healthcare & Medical</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('general clinic')">general clinic</span>
+            <span class="niche-tag" onclick="setNiche('pediatric clinic')">pediatric clinic</span>
+            <span class="niche-tag" onclick="setNiche('dermatology clinic')">dermatology clinic</span>
+            <span class="niche-tag" onclick="setNiche('diagnostic center')">diagnostic center</span>
+            <span class="niche-tag" onclick="setNiche('dental clinic')">dental clinic</span>
+            <span class="niche-tag" onclick="setNiche('optical store')">optical store</span>
+            <span class="niche-tag" onclick="setNiche('pharmacy')">pharmacy</span>
+            <span class="niche-tag" onclick="setNiche('veterinary clinic')">veterinary clinic</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">⚖️ Legal & Compliance</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('law firm')">law firm</span>
+            <span class="niche-tag" onclick="setNiche('immigration lawyer')">immigration lawyer</span>
+            <span class="niche-tag" onclick="setNiche('family lawyer')">family lawyer</span>
+            <span class="niche-tag" onclick="setNiche('notary public')">notary public</span>
+            <span class="niche-tag" onclick="setNiche('tax consultant')">tax consultant</span>
+            <span class="niche-tag" onclick="setNiche('compliance consultant')">compliance consultant</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🏢 Real Estate & Property</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('property management')">property management</span>
+            <span class="niche-tag" onclick="setNiche('real estate broker')">real estate broker</span>
+            <span class="niche-tag" onclick="setNiche('letting agency')">letting agency</span>
+            <span class="niche-tag" onclick="setNiche('home inspection')">home inspection</span>
+            <span class="niche-tag" onclick="setNiche('interior designer')">interior designer</span>
+            <span class="niche-tag" onclick="setNiche('renovation contractor')">renovation contractor</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🛍️ Retail & Local Shops</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('gift shop')">gift shop</span>
+            <span class="niche-tag" onclick="setNiche('florist')">florist</span>
+            <span class="niche-tag" onclick="setNiche('furniture store')">furniture store</span>
+            <span class="niche-tag" onclick="setNiche('clothing boutique')">clothing boutique</span>
+            <span class="niche-tag" onclick="setNiche('toy store')">toy store</span>
+            <span class="niche-tag" onclick="setNiche('bookstore')">bookstore</span>
+            <span class="niche-tag" onclick="setNiche('hardware store')">hardware store</span>
+            <span class="niche-tag" onclick="setNiche('pet store')">pet store</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🏭 Industrial & B2B Services</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('welding service')">welding service</span>
+            <span class="niche-tag" onclick="setNiche('metal fabrication')">metal fabrication</span>
+            <span class="niche-tag" onclick="setNiche('printing service')">printing service</span>
+            <span class="niche-tag" onclick="setNiche('packaging supplier')">packaging supplier</span>
+            <span class="niche-tag" onclick="setNiche('industrial equipment supplier')">industrial equipment supplier</span>
+            <span class="niche-tag" onclick="setNiche('wholesale distributor')">wholesale distributor</span>
+            <span class="niche-tag" onclick="setNiche('logistics company')">logistics company</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🏨 Travel, Stay & Tourism</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('travel agency')">travel agency</span>
+            <span class="niche-tag" onclick="setNiche('tour operator')">tour operator</span>
+            <span class="niche-tag" onclick="setNiche('guest house')">guest house</span>
+            <span class="niche-tag" onclick="setNiche('hostel')">hostel</span>
+            <span class="niche-tag" onclick="setNiche('car rental')">car rental</span>
+            <span class="niche-tag" onclick="setNiche('visa consultant')">visa consultant</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🎉 Events, Media & Creators</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('event planner')">event planner</span>
+            <span class="niche-tag" onclick="setNiche('wedding planner')">wedding planner</span>
+            <span class="niche-tag" onclick="setNiche('dj service')">dj service</span>
+            <span class="niche-tag" onclick="setNiche('video production')">video production</span>
+            <span class="niche-tag" onclick="setNiche('podcast studio')">podcast studio</span>
+            <span class="niche-tag" onclick="setNiche('content creator agency')">content creator agency</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🐾 Pet & Animal Services</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('pet grooming')">pet grooming</span>
+            <span class="niche-tag" onclick="setNiche('dog training')">dog training</span>
+            <span class="niche-tag" onclick="setNiche('pet boarding')">pet boarding</span>
+            <span class="niche-tag" onclick="setNiche('pet clinic')">pet clinic</span>
+            <span class="niche-tag" onclick="setNiche('aquarium shop')">aquarium shop</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🌱 Agriculture & Outdoor</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <span class="niche-tag" onclick="setNiche('nursery')">nursery</span>
+            <span class="niche-tag" onclick="setNiche('landscaping service')">landscaping service</span>
+            <span class="niche-tag" onclick="setNiche('irrigation service')">irrigation service</span>
+            <span class="niche-tag" onclick="setNiche('farm equipment dealer')">farm equipment dealer</span>
+            <span class="niche-tag" onclick="setNiche('organic store')">organic store</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:0.5px">🧼 Cleaning, Safety & Facility</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+            <span class="niche-tag" onclick="setNiche('janitorial service')">janitorial service</span>
+            <span class="niche-tag" onclick="setNiche('commercial cleaning')">commercial cleaning</span>
+            <span class="niche-tag" onclick="setNiche('fire safety service')">fire safety service</span>
+            <span class="niche-tag" onclick="setNiche('security guard service')">security guard service</span>
+            <span class="niche-tag" onclick="setNiche('cctv installation')">cctv installation</span>
+            <span class="niche-tag" onclick="setNiche('water tank cleaning')">water tank cleaning</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" id="btn-start" onclick="startScraper()">
+            <span>&#9654;</span> Start Scraping
+          </button>
+          <button class="btn btn-danger" id="btn-stop" onclick="stopScraper()" style="display:none">
+            ⏹ Stop
+          </button>
+          <div style="font-size:12px;color:var(--muted);margin-left:4px">
+            Finds <strong style="color:var(--accent)">no-website</strong> businesses +
+            checks website SEO → flags <strong style="color:var(--warn)">poor SEO</strong> leads
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE LOG -->
+    <div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🖥️ Live Progress</span>
+        <button class="btn btn-secondary" style="padding:4px 12px;font-size:11px" onclick="clearLog()">Clear</button>
+      </div>
+      <div id="log-console" class="console-box">
+        <div class="log-line log-info">Waiting to start… Enter city, country, niche and click Start Scraping.</div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="section" id="results-section" style="display:none">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <span>✅ Scraped Leads — <span style="color:var(--accent)">No Website</span> + <span style="color:var(--warn)">Poor SEO</span></span>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap" id="import-bar">
+          <span id="lead-count-label" style="font-size:13px;color:var(--muted)"></span>
+          <button class="btn btn-success" id="btn-import" onclick="importLeads()">
+            💾 Import to LeadPro
+          </button>
+          <button class="btn btn-secondary" id="btn-sheets" onclick="openSheetsModal()" style="border-color:rgba(66,133,244,0.4);color:#4285f4">
+            📊 Publish to Google Sheet
+          </button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="leads-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Business Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Address</th>
+              <th>Rating</th>
+              <th>Category</th>
+              <th>Lead Type</th>
+              <th>SEO Score</th>
+              <th>SEO Issues</th>
+              <th>Website</th>
+              <th>Maps Link</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div id="empty-state">
+      <div class="empty-state">
+        <div class="empty-icon">🗺️</div>
+        <p>Results will appear here after scraping is complete.</p>
+        <p style="margin-top:8px;font-size:12px">Scraper starts from <strong>least popular businesses</strong> → better no-website chance!</p>
+      </div>
+      <div class="no-leads-tip" id="no-leads-tip" style="display:none">
+        <h4>⚠ No leads found — Kya karo?</h4>
+        <ul>
+          <li><strong>Niche badlo</strong> — restaurants/cafes/gyms usually have websites. Try trades: <strong>plumber, electrician, painter, tailor</strong></li>
+          <li><strong>Max Leads 50-100</strong> karo — zyada scroll hoga, chhote offline businesses milenge</li>
+          <li><strong>Smaller city try karo</strong> — tier-2/3 cities mein kam digital businesses hain</li>
+          <li><strong>India, Pakistan, Philippines, South Africa, Nigeria</strong> — wahan small businesses ki website bahut kam hoti hai</li>
+          <li>Best for website dev leads: <span class="niche-tag" onclick="setNiche('plumber')">plumber</span> <span class="niche-tag" onclick="setNiche('electrician')">electrician</span> <span class="niche-tag" onclick="setNiche('handyman')">handyman</span> <span class="niche-tag" onclick="setNiche('tailor')">tailor</span> <span class="niche-tag" onclick="setNiche('driving school')">driving school</span></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentJobId = null;
+let pollTimer = null;
+let scrapedLeads = [];
+let logOffset = 0;
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'success' ? '✓ ' : '✗ ') + msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3500);
+}
+
+function setStatus(s) {
+  const b = document.getElementById('status-badge');
+  const map = {
+    idle:    ['pill-idle',    '● IDLE'],
+    running: ['pill-running', '● RUNNING'],
+    done:    ['pill-done',    '✓ DONE'],
+    error:   ['pill-error',   '✗ ERROR'],
+    stopped: ['pill-error',   '⏹ STOPPED'],
+  };
+  const [cls, label] = map[s] || map.idle;
+  b.className = 'status-pill ' + cls;
+  b.innerHTML = (s === 'running' ? '<span class="pulse-dot"></span> ' : '') + label;
+}
+
+function addLog(line) {
+  const box = document.getElementById('log-console');
+  const div = document.createElement('div');
+  div.className = 'log-line ' + classifyLog(line);
+  div.textContent = line;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function classifyLog(line) {
+  if (line.includes('✓') || line.includes('LEAD')) return 'log-ok';
+  if (line.includes('âš ') || line.includes('SKIP')) return 'log-skip';
+  if (line.includes('✗') || line.includes('ERROR') || line.includes('Fatal')) return 'log-error';
+  if (line.includes('══') || line.includes('City') || line.includes('Country') || line.includes('Category') || line.includes('Limit')) return 'log-head';
+  return 'log-info';
+}
+
+function clearLog() {
+  document.getElementById('log-console').innerHTML = '';
+  logOffset = 0;
+}
+
+async function startScraper() {
+  const city = document.getElementById('inp-city').value.trim();
+  const country = document.getElementById('inp-country').value.trim();
+  const niche = document.getElementById('inp-niche').value.trim();
+  const limit = parseInt(document.getElementById('inp-limit').value) || 20;
+
+  if (!city || !country || !niche) {
+    showToast('City, Country aur Niche zaroori hai!', 'error');
+    return;
+  }
+
+  clearLog();
+  scrapedLeads = [];
+  document.getElementById('results-section').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'block';
+  document.getElementById('no-leads-tip').style.display = 'none';
+  document.getElementById('results-tbody').innerHTML = '';
+
+  addLog('Starting scraper...');
+  setStatus('running');
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-stop').style.display = 'inline-flex';
+
+  try {
+    const res = await fetch('/api/gmb/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city, country, category: niche, limit }),
+    });
+    const d = await res.json();
+    if (!d.success) {
+      showToast(d.error || 'Start failed', 'error');
+      resetButtons();
+      setStatus('error');
+      return;
+    }
+    currentJobId = d.job_id;
+    logOffset = 0;
+    pollTimer = setInterval(pollStatus, 2000);
+  } catch(e) {
+    showToast('Server error: ' + e.message, 'error');
+    resetButtons();
+    setStatus('error');
+  }
+}
+
+async function stopScraper() {
+  await fetch('/api/gmb/stop', { method: 'POST' });
+  if (pollTimer) clearInterval(pollTimer);
+  setStatus('stopped');
+  addLog('⏹ Scraper stopped by user.');
+  resetButtons();
+  showToast('Scraper stopped');
+}
+
+async function pollStatus() {
+  if (!currentJobId) return;
+  try {
+    const res = await fetch(`/api/gmb/status/${currentJobId}?offset=${logOffset}`);
+    const d = await res.json();
+    if (!d.success) return;
+
+    // Append new log lines
+    if (d.new_logs && d.new_logs.length) {
+      d.new_logs.forEach(line => { if (line.trim()) addLog(line); });
+      logOffset += d.new_logs.length;
+    }
+
+    // Update leads table live
+    if (d.leads && d.leads.length) {
+      scrapedLeads = d.leads;
+      renderResults(d.leads);
+    }
+
+    if (d.status === 'done' || d.status === 'error' || d.status === 'stopped') {
+      clearInterval(pollTimer);
+      setStatus(d.status);
+      resetButtons();
+      if (d.status === 'done') {
+        if (d.leads && d.leads.length > 0) {
+          document.getElementById('no-leads-tip').style.display = 'none';
+          showToast(`Done! ${d.leads.length} leads mile!`);
+        } else {
+          document.getElementById('no-leads-tip').style.display = 'block';
+          showToast('Koi lead nahi mila — niche badlo!', 'error');
+          addLog('Tip: "restaurant/cafe/gym" popular niches mein mostly website hoti hai.');
+          addLog('Website dev leads ke liye try karo: plumber, electrician, handyman, tailor, driving school, barber shop');
+        }
+      }
+    }
+  } catch(e) { /* ignore poll errors */ }
+}
+
+function renderResults(leads) {
+  if (!leads || leads.length === 0) return;
+  document.getElementById('results-section').style.display = 'block';
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('lead-count-label').textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''} ready`;
+
+  const tbody = document.getElementById('results-tbody');
+  tbody.innerHTML = leads.map((l, i) => {
+    const isNoWebsite = !l.lead_type || l.lead_type === 'no_website';
+    const isPoorSeo   = l.lead_type === 'poor_seo';
+    const seoScore    = l.seo_score !== undefined && l.seo_score !== '' ? parseInt(l.seo_score) : null;
+    const scoreColor  = seoScore !== null ? (seoScore < 30 ? 'var(--danger)' : seoScore < 50 ? 'var(--warn)' : '#aaa') : '';
+    const issuesList  = l.seo_issues ? l.seo_issues.split(';').map(s => s.trim()).filter(Boolean) : [];
+
+    return `
+    <tr>
+      <td style="color:var(--muted);font-family:var(--font-mono)">${i + 1}</td>
+      <td><strong>${esc(l.name || '—')}</strong></td>
+      <td style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${esc(l.phone || '—')}</td>
+      <td style="font-size:12px">
+        ${l.email
+          ? `<a href="mailto:${esc(l.email)}" style="color:var(--accent2);text-decoration:none;font-size:11px">${esc(l.email)}</a>`
+          : `<span style="color:var(--muted)">—</span>`
+        }
+      </td>
+      <td style="color:var(--muted);font-size:12px;max-width:180px">${esc(l.address || '—')}</td>
+      <td style="font-family:var(--font-mono)">
+        ${l.rating ? `<span style="color:var(--warn)">★ ${esc(l.rating)}</span>` : '—'}
+      </td>
+      <td style="font-size:12px;color:var(--muted)">${esc(l.category || '—')}</td>
+      <td>
+        ${isNoWebsite
+          ? `<span class="badge badge-no">NO WEBSITE</span>`
+          : `<span class="badge" style="background:rgba(255,170,0,0.12);color:var(--warn);border:1px solid rgba(255,170,0,0.3)">POOR SEO</span>`
+        }
+      </td>
+      <td style="font-family:var(--font-mono);font-size:13px;text-align:center">
+        ${seoScore !== null
+          ? `<span style="color:${scoreColor};font-weight:700">${seoScore}<span style="font-size:10px;color:var(--muted)">/100</span></span>`
+          : `<span style="color:var(--muted);font-size:11px">N/A</span>`
+        }
+      </td>
+      <td style="font-size:11px;color:var(--muted);max-width:220px">
+        ${issuesList.length
+          ? issuesList.map(issue => `<div style="padding:1px 0;line-height:1.5">• ${esc(issue)}</div>`).join('')
+          : `<span style="color:var(--muted)">—</span>`
+        }
+      </td>
+      <td>
+        ${isPoorSeo && l.website_url
+          ? `<a href="${esc(l.website_url)}" target="_blank" style="color:var(--accent2);font-size:12px;text-decoration:none">Visit ↗</a>`
+          : `<span style="color:var(--muted);font-size:11px">—</span>`
+        }
+      </td>
+      <td>
+        <a href="${esc(l.gmb_url || '#')}" target="_blank" style="color:var(--accent2);font-size:12px;text-decoration:none">
+          Maps ↗
+        </a>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function importLeads() {
+  if (!scrapedLeads.length) { showToast('Pehle scrape karo!', 'error'); return; }
+  const service = document.getElementById('inp-service').value;
+  const btn = document.getElementById('btn-import');
+  btn.textContent = 'Importing…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/gmb/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leads: scrapedLeads, service_needed: service }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      showToast(`${d.inserted} leads LeadPro mein add ho gaye!`);
+      btn.textContent = `✓ ${d.inserted} Imported`;
+    } else {
+      showToast(d.error || 'Import failed', 'error');
+      btn.textContent = '💾 Import All to LeadPro';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    showToast('Import error: ' + e.message, 'error');
+    btn.textContent = '💾 Import All to LeadPro';
+    btn.disabled = false;
+  }
+}
+
+function resetButtons() {
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-stop').style.display = 'none';
+}
+
+function setNiche(niche) {
+  document.getElementById('inp-niche').value = niche;
+  document.getElementById('inp-niche').focus();
+}
+
+// ── Google Sheets ──────────────────────────────────────────────────────────
+async function openSheetsModal() {
+  if (!scrapedLeads.length) { showToast('Pehle scrape karo!', 'error'); return; }
+  // Load saved webhook URL
+  let savedUrl = '';
+  try {
+    const r = await fetch('/api/gmb/get-sheets-webhook');
+    const d = await r.json();
+    savedUrl = d.webhook_url || '';
+  } catch(_) {}
+  document.getElementById('sheets-webhook-input').value = savedUrl;
+  document.getElementById('sheets-modal').style.display = 'flex';
+}
+
+function closeSheetsModal() {
+  document.getElementById('sheets-modal').style.display = 'none';
+}
+
+async function publishToSheets() {
+  const webhookUrl = document.getElementById('sheets-webhook-input').value.trim();
+  if (!webhookUrl) { showToast('Webhook URL daalo!', 'error'); return; }
+
+  const btn = document.getElementById('btn-sheets-publish');
+  btn.disabled = true;
+  btn.textContent = 'Publishing…';
+
+  try {
+    const res = await fetch('/api/gmb/publish-sheets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leads: scrapedLeads, webhook_url: webhookUrl }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      showToast(`${d.published} leads Google Sheet mein add ho gaye!`);
+      closeSheetsModal();
+    } else {
+      showToast(d.error || 'Publish failed', 'error');
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '📊 Publish Now';
+}
+</script>
+
+<!-- Google Sheets Modal -->
+<div class="modal-overlay" id="sheets-modal" style="display:none" onclick="if(event.target===this)closeSheetsModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeSheetsModal()">✕</button>
+    <h3>📊 Publish to Google Sheet</h3>
+
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.8">
+      Yeh 3-step setup <strong style="color:var(--text)">ek baar</strong> karni hai:
+    </div>
+
+    <div style="background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:8px">STEP 1 — Google Sheet banao</div>
+      <div style="font-size:12px;color:var(--muted)">sheets.google.com → New sheet banao → naam kuch bhi rakho</div>
+
+      <div style="font-size:12px;color:var(--accent);font-weight:600;margin:12px 0 8px">STEP 2 — Apps Script deploy karo</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Sheet mein: <strong style="color:var(--text)">Extensions → Apps Script</strong> → yeh code paste karo:</div>
+      <pre>function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var leads = JSON.parse(e.postData.contents).leads;
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Name','Phone','Email','Address','City','Country',
+      'Category','Rating','Reviews','Lead Type','SEO Score',
+      'SEO Issues','Website','Maps Link','Added On']);
+  }
+  leads.forEach(function(l) {
+    sheet.appendRow([l.name,l.phone,l.email,l.address,l.city,l.country,
+      l.category,l.rating,l.reviews,l.lead_type,l.seo_score,
+      l.seo_issues,l.website_url,l.gmb_url,new Date().toLocaleString()]);
+  });
+  return ContentService
+    .createTextOutput(JSON.stringify({ok:true,added:leads.length}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+      <div style="font-size:12px;color:var(--muted)">Phir: <strong style="color:var(--text)">Deploy → New deployment → Web app → Execute as: Me → Access: Anyone → Deploy</strong> → URL copy karo</div>
+
+      <div style="font-size:12px;color:var(--accent);font-weight:600;margin:12px 0 8px">STEP 3 — URL paste karo neeche:</div>
+    </div>
+
+    <label class="form-label">Google Apps Script Webhook URL</label>
+    <input type="text" class="form-input" id="sheets-webhook-input"
+           placeholder="https://script.google.com/macros/s/...../exec"
+           style="margin-bottom:16px">
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeSheetsModal()">Cancel</button>
+      <button class="btn btn-primary" id="btn-sheets-publish" onclick="publishToSheets()" style="background:#4285f4">
+        📊 Publish Now
+      </button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

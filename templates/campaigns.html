@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campaigns - LeadPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f;
+  --surface:#111118;
+  --surface2:#1a1a24;
+  --border:#252535;
+  --accent:#00ff88;
+  --accent2:#0066ff;
+  --danger:#ff3366;
+  --text:#e8e8f0;
+  --muted:#666680;
+  --font-mono:'Space Mono', monospace;
+  --font:'DM Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font)}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
+.logo{padding:28px 24px 20px;border-bottom:1px solid var(--border)}
+.logo-text{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent)}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:2px;text-transform:uppercase}
+.nav{flex:1;padding:16px 12px}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:all .15s;margin-bottom:2px}
+.nav-item .icon{font-size:18px;width:22px;text-align:center}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(0,255,136,0.08);color:var(--accent)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:auto;box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sidebar-footer{padding:16px 24px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:10px;color:var(--muted)}
+.main{margin-left:240px}
+.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface)}
+.topbar-title{font-size:22px;font-weight:700}
+.content{padding:32px;display:grid;grid-template-columns:1fr 420px;gap:24px;min-height:calc(100vh - 70px)}
+.btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#00dd77}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(255,51,102,.1);color:var(--danger);border:1px solid rgba(255,51,102,.35)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-full{width:100%;justify-content:center}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.form-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-input,.form-textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:14px;transition:border-color .2s;outline:none;resize:vertical}
+.form-input:focus,.form-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,255,136,.08)}
+.form-group{margin-bottom:16px}
+.section-title{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.4px;margin-bottom:16px}
+.service-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.svc-item{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--text)}
+.svc-item input{accent-color:#00ff88}
+.camp-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:12px;cursor:pointer;transition:all .15s}
+.camp-card:hover,.camp-card.active{border-color:var(--accent);background:rgba(0,255,136,.04)}
+.camp-name{font-size:15px;font-weight:700;margin-bottom:4px}
+.camp-service{font-size:12px;color:var(--accent2);margin-bottom:8px}
+.camp-subject{font-size:12px;color:var(--muted)}
+.camp-meta{display:flex;align-items:center;gap:12px;margin-top:10px}
+.camp-stat{font-size:11px;font-family:var(--font-mono);color:var(--muted)}
+.live-panel{margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.live-meta{font-size:12px;color:var(--muted);margin-bottom:10px}
+.live-frame{background:#fff;border-radius:10px;min-height:220px;max-height:460px;overflow:auto;padding:10px}
+.editor-panel{position:sticky;top:24px}
+.template-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.pill{padding:5px 12px;border-radius:20px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:var(--bg);color:var(--muted);transition:all .15s}
+.pill:hover,.pill.active{border-color:var(--accent);color:var(--accent);background:rgba(0,255,136,.05)}
+.form-note{font-size:11px;color:var(--muted);margin-top:-8px;margin-bottom:12px}
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 20px;font-size:14px;max-width:320px;transform:translateY(100px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--accent)}
+.toast.error{border-color:var(--danger)}
+.html-preview{background:white;border-radius:8px;padding:16px;max-height:260px;overflow-y:auto;margin-top:8px;font-size:13px}
+@media (max-width:1200px){.content{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="logo"><div class="logo-text">LeadPro</div><div class="logo-sub">Lead Engine v1.0</div></div>
+  <div class="nav">
+    <a href="/" class="nav-item"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/leads" class="nav-item"><span class="icon">👥</span> All Leads</a>
+    <a href="/cold-leads" class="nav-item"><span class="icon">🧊</span> Cold Leads</a>
+    <a href="/gmb-scraper" class="nav-item"><span class="icon">🗺️</span> GMB Scraper</a>
+    <a href="/campaigns" class="nav-item active"><span class="icon">📧</span> Campaigns <span class="status-dot"></span></a>
+    <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
+    <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
+  </div>
+  <div class="sidebar-footer">LEADPRO (c) 2025</div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Email Campaigns</div>
+    <button class="btn btn-primary btn-sm" onclick="newCampaign()">+ New Campaign</button>
+  </div>
+  <div class="content">
+    <div>
+      <div class="section-title">Saved Campaigns</div>
+      <div id="camp-list"><div style="color:var(--muted);font-size:13px;padding:20px 0">Loading...</div></div>
+      <div class="live-panel">
+        <div class="section-title" style="margin-bottom:8px">Current Template</div>
+        <div id="live-meta" class="live-meta">Select a campaign to preview current template</div>
+        <div id="live-template-preview" class="live-frame"></div>
+      </div>
+    </div>
+
+    <div class="editor-panel">
+      <div class="card">
+        <div class="section-title" id="editor-title">New Campaign</div>
+
+        <div style="margin-bottom:14px">
+          <div class="section-title" style="margin-bottom:8px">Quick Templates</div>
+          <div style="margin-bottom:10px">
+            <button class="btn btn-secondary btn-sm" onclick="loadPremiumTemplate()">Load Solvinex Premium Template</button>
+          </div>
+          <div class="form-note">Logo/colors/font are taken from Settings -> Brand Assets.</div>
+          <div class="template-pills" id="template-pills"></div>
+        </div>
+
+        <input type="hidden" id="edit-id">
+        <div class="form-group">
+          <label class="form-label">Campaign Name</label>
+          <input type="text" class="form-input" id="edit-name" placeholder="e.g. Solvinex Outreach - Delhi">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Services (multi-select)</label>
+          <div class="service-grid" id="service-grid"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject Line ({business} = business name)</label>
+          <input type="text" class="form-input" id="edit-subject" placeholder="Growth proposal for {business}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Body (HTML placeholders: {business}, {service}, {sender_name})</label>
+          <textarea class="form-textarea" id="edit-body" rows="8" placeholder="<h2>Hi {business},</h2><p>...</p>"></textarea>
+        </div>
+        <div id="preview-wrap" style="display:none">
+          <label class="form-label">Preview</label>
+          <div class="html-preview" id="html-preview"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn btn-primary btn-full" onclick="saveCampaign()">Save Campaign</button>
+          <button class="btn btn-secondary btn-sm" onclick="togglePreview()">Preview</button>
+          <button class="btn btn-secondary btn-sm" onclick="newCampaign()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let templates = {};
+const BRAND = {
+  logoWhite: {{ (settings.logo_white_url or 'https://solvinex.com/uploads/footer-logo-white.png')|tojson }},
+  logoColor: {{ (settings.logo_color_url or 'https://solvinex.com/uploads/header-logo.png')|tojson }},
+  primary: {{ (settings.brand_primary or '#2563eb')|tojson }},
+  secondary: {{ (settings.brand_secondary or '#0ea5e9')|tojson }},
+  font: {{ (settings.brand_font or 'Inter')|tojson }}
+};
+const SERVICES = [
+  'Website Development',
+  'SEO (Search Engine Optimization)',
+  'Logo Design',
+  'Social Media Management',
+  'App Development',
+  'E-commerce Solutions',
+  'UI/UX Design',
+  'Branding & Graphic Design',
+  'CMS Development',
+  'Website Maintenance'
+];
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type==='success' ? 'OK: ' : 'ERR: ') + msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function renderBrandTemplate(html, serviceText='Website Development') {
+  const fontGoogle = (BRAND.font || 'Inter').trim().replace(/\s+/g, '+');
+  return (html || '')
+    .replace(/{business}/g, 'Sample Business')
+    .replace(/{service}/g, serviceText)
+    .replace(/{sender_name}/g, 'Solvinex Team')
+    .replace(/{logo_white_url}/g, BRAND.logoWhite)
+    .replace(/{logo_color_url}/g, BRAND.logoColor)
+    .replace(/{brand_primary}/g, BRAND.primary)
+    .replace(/{brand_secondary}/g, BRAND.secondary)
+    .replace(/{brand_font}/g, BRAND.font)
+    .replace(/{brand_font_google}/g, fontGoogle);
+}
+
+function updateLiveTemplatePreview(name, subject, body, services) {
+  const meta = document.getElementById('live-meta');
+  const wrap = document.getElementById('live-template-preview');
+  const svcText = Array.isArray(services) ? services.join(', ') : (services || '');
+  meta.textContent = `${name || 'Untitled'} | ${svcText || 'No services selected'}`;
+  if (!body) {
+    wrap.innerHTML = '<div style="color:#64748b;font-size:13px">No template body available.</div>';
+    return;
+  }
+  wrap.innerHTML = renderBrandTemplate(body, svcText || 'Website Development');
+}
+
+function initServiceGrid() {
+  const grid = document.getElementById('service-grid');
+  grid.innerHTML = SERVICES.map((s, i) =>
+    `<label class="svc-item"><input type="checkbox" class="svc-check" value="${s}" id="svc-${i}"> <span>${s}</span></label>`
+  ).join('');
+}
+
+function getSelectedServices() {
+  return [...document.querySelectorAll('.svc-check:checked')].map(c => c.value);
+}
+
+function setSelectedServices(input) {
+  const selected = new Set((input || '').split(',').map(s => s.trim()).filter(Boolean));
+  document.querySelectorAll('.svc-check').forEach(cb => cb.checked = selected.has(cb.value));
+}
+
+async function loadTemplates() {
+  const res = await fetch('/api/templates');
+  templates = await res.json();
+  const pills = document.getElementById('template-pills');
+  pills.innerHTML = Object.keys(templates).map(s =>
+    `<span class="pill" onclick="loadTemplate('${s}')">${s.replace(' (Search Engine Optimization)','').replace(' & Graphic Design','')}</span>`
+  ).join('');
+}
+
+function loadTemplate(service) {
+  const t = templates[service];
+  if (!t) return;
+  setSelectedServices(service);
+  document.getElementById('edit-subject').value = t.subject;
+  document.getElementById('edit-body').value = t.body;
+  document.getElementById('edit-name').value = service + ' Campaign';
+  updateLiveTemplatePreview(service + ' Campaign', t.subject, t.body, [service]);
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+}
+
+function loadPremiumTemplate() {
+  if (!getSelectedServices().length) {
+    setSelectedServices('Website Development, SEO (Search Engine Optimization), Branding & Graphic Design');
+  }
+  document.getElementById('edit-name').value = 'Solvinex Premium Outreach Template';
+  document.getElementById('edit-subject').value = 'Solvinex growth proposal for {business}';
+  document.getElementById('edit-body').value = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solvinex Growth Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family={brand_font_google}:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse !important; }
+img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+body { margin: 0; padding: 0; background-color: #f4f8fb; font-family: '{brand_font}', Helvetica, Arial, sans-serif; color: #334155; }
+.container { width: 100%; max-width: 750px; margin: 0 auto; }
+.two-col { text-align: center; font-size: 0; }
+.two-col .column { width: 100%; max-width: 330px; display: inline-block; vertical-align: top; }
+@media screen and (max-width: 750px) {
+  .container { width: 100% !important; }
+  .two-col .column { max-width: 100% !important; display: block; }
+  .mobile-padding { padding-left: 20px !important; padding-right: 20px !important; }
+  h1 { font-size: 28px !important; }
+}
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f8fb;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #0f172a 0%, {brand_primary} 50%, {brand_secondary} 100%);">
+  <tr>
+    <td align="center" style="padding: 50px 20px 60px;">
+      <table class="container" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom: 30px;"><img src="{logo_white_url}" alt="Solvinex" width="180" style="display:block; max-width:180px;"></td></tr></table>
+            <span style="display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 30px; color: #bfdbfe; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 20px;">Exclusive Digital Growth Plan</span>
+            <h1 style="margin: 0 0 20px; font-size: 40px; line-height: 1.18; font-weight: 800; color: #ffffff; letter-spacing: -1px;">Your Custom Digital<br>Growth Blueprint</h1>
+            <p style="margin: 0; font-size: 17px; line-height: 1.75; color: #e2e8f0; max-width: 620px; margin-left: auto; margin-right: auto;">We combine premium design, high-performance development, and AI-powered growth systems to turn your digital presence into a predictable lead engine.</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" style="padding: 0 20px;">
+      <table class="container" cellpadding="0" cellspacing="0" border="0" style="background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08); margin-top: -40px; position: relative; z-index: 10;">
+        <tr>
+          <td style="padding: 40px;" class="mobile-padding">
+            <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.7; color: #475569;">Hi <strong>{business}</strong>,<br><br>In today's fast-paced digital landscape, your online presence should work as your strongest 24/7 sales system.</p>
+            <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.7; color: #475569;">We reviewed your digital footprint and identified major growth opportunities across: <strong>{service}</strong>.</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-left: 4px solid {brand_primary}; border-radius: 0 8px 8px 0;"><tr><td style="padding: 20px;"><p style="margin: 0; font-size: 15px; color: #1e293b; line-height: 1.6;"><strong>The Solvinex Advantage:</strong> our frameworks regularly deliver <span style="color: {brand_primary}; font-weight: 700;">2x to 3x improvement in qualified leads</span> within 90 days.</p></td></tr></table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding: 10px 40px 30px;" class="mobile-padding">
+            <h2 style="margin: 0 0 22px; font-size: 22px; font-weight: 800; color: #0f172a; text-align: center;">Our Proposed Solutions</h2>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:10px;">
+              <tr>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">🌐</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Website Development</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Fast, modern websites that convert visitors into qualified leads.</p>
+                </td>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">🔍</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">SEO Optimization</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Higher Google rankings with targeted keywords and organic traffic growth.</p>
+                </td>
+              </tr>
+              <tr>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">🎨</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Logo Design</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Professional logos crafted to make your brand memorable and premium.</p>
+                </td>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">📱</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Social Media Management</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Consistent, high-performing social content that drives awareness and enquiries.</p>
+                </td>
+              </tr>
+              <tr>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">📲</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">App Development</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Reliable mobile apps for Android and iOS with smooth user journeys.</p>
+                </td>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">🛒</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">E-commerce Solutions</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Sales-focused online stores designed for higher conversion and repeat orders.</p>
+                </td>
+              </tr>
+              <tr>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">🧩</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">UI/UX Design</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Beautiful, intuitive interfaces that keep users engaged and ready to convert.</p>
+                </td>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">✨</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Branding & Graphic Design</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Strong brand identity systems that build trust across every touchpoint.</p>
+                </td>
+              </tr>
+              <tr>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">⚙️</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">CMS Development</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Easy content management so your team can update pages without coding.</p>
+                </td>
+                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
+                  <p style="margin:0 0 8px;font-size:18px;">🛡️</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Website Maintenance</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Continuous support, updates, and security for stable long-term growth.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding: 10px 40px 50px;" class="mobile-padding">
+            <h3 style="margin: 0 0 10px; font-size: 20px; font-weight: 800; color: #0f172a;">Ready to grow faster?</h3>
+            <p style="margin: 0 0 24px; font-size: 15px; color: #64748b; max-width: 430px;">Reply directly and we will share a practical growth blueprint for {business} by email.</p>
+            <a href="https://solvinex.com/contact" style="background: linear-gradient(135deg, {brand_primary} 0%, {brand_secondary} 100%); color: #ffffff; font-size: 16px; font-weight: 700; text-decoration: none; padding: 16px 40px; border-radius: 50px; display: inline-block; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);">Get Free Growth Plan on Email</a>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding: 0 40px 40px;" class="mobile-padding">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border-top: 1px solid #e2e8f0; padding-top: 28px;">
+              <tr>
+                <td valign="middle">
+                  <p style="margin: 0 0 2px; font-size: 16px; font-weight: 700; color: #0f172a;">{sender_name}</p>
+                  <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500;">Digital Growth Strategist at Solvinex</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f8fb;">
+  <tr>
+    <td align="center" style="padding: 34px 20px;">
+      <table class="container" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td align="center">
+            <img src="{logo_color_url}" alt="Solvinex Logo" width="120" style="opacity: 0.95; margin-bottom: 12px;">
+            <p style="margin:0;font-size:12px;color:#94a3b8;">(c) 2026 Solvinex. All rights reserved.</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+
+  updateLiveTemplatePreview(
+    'Solvinex Premium Outreach Template',
+    document.getElementById('edit-subject').value,
+    document.getElementById('edit-body').value,
+    getSelectedServices()
+  );
+  showToast('Premium template loaded');
+}
+
+async function loadCampaigns() {
+  const res = await fetch('/api/campaigns-list');
+  const camps = await res.json();
+  const el = document.getElementById('camp-list');
+  if (!camps.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px 0">No campaigns yet. Create one.</div>';
+    return;
+  }
+  el.innerHTML = camps.map(c => {
+    const services = (c.service || '').split(',').map(s => s.trim()).filter(Boolean);
+    const shortSvc = services.length > 2 ? `${services.slice(0,2).join(', ')} +${services.length-2}` : (c.service || '');
+    const safeName = encodeURIComponent(c.name || '');
+    const safeService = encodeURIComponent(c.service || '');
+    const safeSubject = encodeURIComponent(c.subject || '');
+    return `<div class="camp-card" onclick="editCampaign(${c.id},'${safeName}','${safeService}','${safeSubject}')">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
+        <div>
+          <div class="camp-name">${c.name || 'Untitled'}</div>
+          <div class="camp-service">${shortSvc || 'No service'}</div>
+          <div class="camp-subject">Subject: ${(c.subject || '').substring(0,70)}...</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCamp(${c.id})" style="padding:4px 10px;font-size:11px">Delete</button>
+      </div>
+      <div class="camp-meta"><span class="camp-stat">Sent: ${c.sent_count || 0}</span><span class="camp-stat">Created: ${(c.created_on||'').split('T')[0]||c.created_on||'-'}</span></div>
+    </div>`;
+  }).join('');
+
+  if (camps.length) {
+    const first = camps[0];
+    updateLiveTemplatePreview(first.name, first.subject, first.body, first.service);
+  }
+}
+
+function editCampaign(id, name, service, subject) {
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-name').value = decodeURIComponent(name || '');
+  setSelectedServices(decodeURIComponent(service || ''));
+  document.getElementById('edit-subject').value = decodeURIComponent(subject || '');
+  document.getElementById('editor-title').textContent = 'Edit Campaign';
+  fetch('/api/campaigns-list').then(r => r.json()).then(camps => {
+    const c = camps.find(x => x.id == id);
+    if (!c) return;
+    document.getElementById('edit-body').value = c.body || '';
+    updateLiveTemplatePreview(c.name, c.subject, c.body, decodeURIComponent(service || ''));
+  });
+}
+
+function newCampaign() {
+  document.getElementById('edit-id').value = '';
+  document.getElementById('edit-name').value = '';
+  setSelectedServices('');
+  document.getElementById('edit-subject').value = '';
+  document.getElementById('edit-body').value = '';
+  updateLiveTemplatePreview('', '', '', '');
+  document.getElementById('editor-title').textContent = 'New Campaign';
+  document.getElementById('preview-wrap').style.display = 'none';
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+}
+
+async function saveCampaign() {
+  const name = document.getElementById('edit-name').value.trim();
+  const selectedServices = getSelectedServices();
+  const subject = document.getElementById('edit-subject').value.trim();
+  const body = document.getElementById('edit-body').value.trim();
+
+  if (!name || !subject || !body || !selectedServices.length) {
+    showToast('Fill name, services, subject and body', 'error');
+    return;
+  }
+
+  const res = await fetch('/api/campaigns/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      id: document.getElementById('edit-id').value || null,
+      name,
+      service: selectedServices.join(', '),
+      subject,
+      body
+    })
+  });
+
+  const d = await res.json();
+  if (!d.success) {
+    showToast(d.error || 'Error', 'error');
+    return;
+  }
+
+  showToast('Campaign saved');
+  updateLiveTemplatePreview(name, subject, body, selectedServices);
+  loadCampaigns();
+}
+
+async function deleteCamp(id) {
+  if (!confirm('Delete this campaign?')) return;
+  await fetch(`/api/campaigns/delete/${id}`, {method:'DELETE'});
+  showToast('Campaign deleted');
+  loadCampaigns();
+}
+
+function togglePreview() {
+  const wrap = document.getElementById('preview-wrap');
+  const body = document.getElementById('edit-body').value;
+  const services = getSelectedServices();
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  if (wrap.style.display === 'block') {
+    document.getElementById('html-preview').innerHTML = renderBrandTemplate(body, services.join(', ') || 'Website Development');
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  initServiceGrid();
+  loadTemplates();
+  loadCampaigns();
+});
+</script>
+</body>
+</html>
+

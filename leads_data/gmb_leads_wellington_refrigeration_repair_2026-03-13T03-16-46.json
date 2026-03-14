@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "city": "wellington",
+    "country": "New Zealand",
+    "category": "refrigeration repair",
+    "limit": 60,
+    "total": 4,
+    "timestamp": "2026-03-13T03:23:25.881Z"
+  },
+  "leads": [
+    {
+      "name": "Dewar Appliance Repairs",
+      "phone": "+64 4 568 2550",
+      "email": "",
+      "address": "",
+      "city": "wellington",
+      "country": "New Zealand",
+      "category": "Appliance repair service",
+      "rating": "4.8",
+      "reviews": "4",
+      "gmb_url": "https://www.google.com/maps/place/Dewar+Appliance+Repairs/data=!4m7!3m6!1s0x6d38abbdc8461d8b:0x812fd993982eaec3!8m2!3d-41.1658759!4d174.9597026!16s%2Fg%2F1tl8kx7j!19sChIJix1GyL2rOG0Rw64umJPZL4E?authuser=0&hl=en&rclk=1",
+      "has_website": "Yes",
+      "website_url": "http://www.dewarappliances.co.nz/",
+      "lead_type": "poor_seo",
+      "seo_score": 42,
+      "seo_issues": "No meta description; No H1 heading; No HTTPS (insecure); 8 images missing alt"
+    },
+    {
+      "name": "Frontline Appliances",
+      "phone": "+64 4 589 5104",
+      "email": "info@frontlineappliances.co.nz",
+      "address": "",
+      "city": "wellington",
+      "country": "New Zealand",
+      "category": "Appliance repair service",
+      "rating": "4.7",
+      "reviews": "4",
+      "gmb_url": "https://www.google.com/maps/place/Frontline+Appliances/data=!4m7!3m6!1s0x6d38aba862c97d11:0x4567c547196d0cda!8m2!3d-41.2034636!4d174.8500996!16s%2Fg%2F11b5wq50lv!19sChIJEX3JYqirOG0R2gxtGUfFZ0U?authuser=0&hl=en&rclk=1",
+      "has_website": "Yes",
+      "website_url": "http://frontlineappliances.co.nz/",
+      "lead_type": "poor_seo",
+      "seo_score": 58,
+      "seo_issues": "No HTTPS (insecure); Not mobile-friendly; No schema markup; No canonical tag"
+    },
+    {
+      "name": "Wellington Appliance Servicing LTD",
+      "phone": "+64 4 260 2066",
+      "email": "",
+      "address": "509 High Street, Hutt Central, Lower Hutt 5010, New Zealand",
+      "city": "wellington",
+      "country": "New Zealand",
+      "category": "Small appliance repair service",
+      "rating": "5.0",
+      "reviews": "5",
+      "gmb_url": "https://www.google.com/maps/place/Wellington+Appliance+Servicing+LTD/data=!4m7!3m6!1s0x6d38ab6a5cea7035:0x3c19c13a29ce72b!8m2!3d-41.2049612!4d174.9118406!16s%2Fg%2F11hjk6k9xp!19sChIJNXDqXGqrOG0RK-ecohOcwQM?authuser=0&hl=en&rclk=1",
+      "has_website": "Yes",
+      "website_url": "http://www.wellingtonapplianceservicing.co.nz/",
+      "lead_type": "poor_seo",
+      "seo_score": 45,
+      "seo_issues": "Title too long; No meta description; No HTTPS (insecure); 15 images missing alt; No schema markup"
+    },
+    {
+      "name": "Thermo King Wellington",
+      "phone": "+64 4 381 3927",
+      "email": "tkw_service@thermoking.co.nz",
+      "address": "31 Broken Hill Road, Kenepuru, Porirua 5022, New Zealand",
+      "city": "wellington",
+      "country": "New Zealand",
+      "category": "Refrigerator repair service",
+      "rating": "5.0",
+      "reviews": "5",
+      "gmb_url": "https://www.google.com/maps/place/Thermo+King+Wellington/@-41.1525087,174.8243922,17z/data=!3m1!4b1!4m6!3m5!1s0x6d3f53002230c869:0x68dd6fbe469ce783!8m2!3d-41.1525087!4d174.8243922!16s%2Fg%2F11y4mj9fry?authuser=0&hl=en&entry=ttu&g_ep=EgoyMDI2MDMxMS4wIKXMDSoASAFQAw%3D%3D",
+      "has_website": "Yes",
+      "website_url": "http://www.thermoking.co.nz/",
+      "lead_type": "poor_seo",
+      "seo_score": 43,
+      "seo_issues": "Title too short; No meta description; No HTTPS (insecure); No schema markup; No canonical tag"
+    }
+  ]
+}

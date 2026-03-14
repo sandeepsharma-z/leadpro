@@ -1,0 +1,22 @@
+{
+  "name": "gmb-lead-scraper",
+  "version": "1.0.0",
+  "description": "Google Maps Business lead scraper - extracts businesses without websites",
+  "main": "scraper.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "scrape": "node scraper.js",
+    "test": "node scraper.js --city=\"Auckland\" --country=\"New Zealand\" --category=\"cafe\" --limit=5",
+    "install-browsers": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.44.0",
+    "csv-writer": "^1.6.0",
+    "minimist": "^1.2.8",
+    "cli-progress": "^3.12.0"
+  },
+  "author": "LeadPro",
+  "license": "MIT"
+}

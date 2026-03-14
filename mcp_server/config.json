@@ -1,0 +1,15 @@
+{
+  "leadpro": {
+    "api_base": "http://localhost:5000",
+    "db_path": "c:/wamp64/www/LeadPro/data/leads.db",
+    "scraper_dir": "c:/wamp64/www/LeadPro/gmb_scraper"
+  },
+  "mcp": {
+    "server_name": "leadpro-mcp",
+    "version": "1.0.0",
+    "port": 8765
+  },
+  "booking": {
+    "link": "http://localhost:5000/book"
+  }
+}

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendar — LeadPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--border:#252535;--accent:#00ff88;--accent2:#0066ff;--danger:#ff3366;--warn:#ffaa00;--text:#e8e8f0;--muted:#666680;--font-mono:'Space Mono',monospace;--font:'DM Sans',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+.logo{padding:28px 24px 20px;border-bottom:1px solid var(--border);}
+.logo-text{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent);}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:2px;text-transform:uppercase;}
+.nav{flex:1;padding:16px 12px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:all 0.15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(0,255,136,0.08);color:var(--accent);}
+.nav-item .icon{font-size:18px;width:22px;text-align:center;}
+.sidebar-footer{padding:16px 24px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:10px;color:var(--muted);}
+.main{margin-left:240px;}
+.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);}
+.topbar-title{font-size:22px;font-weight:700;}
+.topbar-actions{display:flex;gap:10px;}
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all 0.15s;display:inline-flex;align-items:center;gap:7px;text-decoration:none;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#00dd77;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.content{padding:32px;}
+
+/* stats row */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.stat-value{font-size:28px;font-weight:700;font-family:var(--font-mono);}
+.stat-value.green{color:var(--accent);}
+.stat-value.blue{color:#3b82f6;}
+.stat-value.warn{color:var(--warn);}
+.stat-value.muted{color:var(--muted);}
+
+/* filter tabs */
+.filter-tabs{display:flex;gap:8px;margin-bottom:20px;}
+.filter-tab{padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:13px;cursor:pointer;transition:all 0.15s;}
+.filter-tab:hover{border-color:var(--accent);color:var(--accent);}
+.filter-tab.active{background:rgba(0,255,136,0.1);border-color:var(--accent);color:var(--accent);}
+
+/* table */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+th{padding:12px 20px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);}
+td{padding:14px 20px;font-size:14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:0.3px;}
+.badge-pending{background:rgba(255,170,0,0.12);color:var(--warn);border:1px solid rgba(255,170,0,0.25);}
+.badge-confirmed{background:rgba(0,255,136,0.1);color:var(--accent);border:1px solid rgba(0,255,136,0.2);}
+.badge-cancelled{background:rgba(255,51,102,0.1);color:var(--danger);border:1px solid rgba(255,51,102,0.2);}
+.action-btns{display:flex;gap:6px;}
+.act-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer;transition:all 0.15s;}
+.act-btn:hover{border-color:var(--accent);color:var(--accent);}
+.act-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+.empty-state{padding:60px;text-align:center;color:var(--muted);}
+.empty-icon{font-size:48px;margin-bottom:14px;}
+.empty-title{font-size:18px;font-weight:600;color:var(--text);margin-bottom:6px;}
+
+/* booking link box */
+.link-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px;}
+.link-box .link-label{font-size:12px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
+.link-box .link-url{font-family:var(--font-mono);font-size:13px;color:var(--accent2);}
+.copy-btn{margin-left:auto;flex-shrink:0;}
+
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:14px 20px;font-size:14px;max-width:320px;transform:translateY(100px);opacity:0;transition:all 0.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="logo"><div class="logo-text">⚡ LeadPro</div><div class="logo-sub">Lead Engine v1.0</div></div>
+  <div class="nav">
+    <a href="/" class="nav-item"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/leads" class="nav-item"><span class="icon">👥</span> All Leads</a>
+    <a href="/cold-leads" class="nav-item"><span class="icon">🧊</span> Cold Leads</a>
+    <a href="/gmb-scraper" class="nav-item"><span class="icon">🗺️</span> GMB Scraper</a>
+    <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
+    <a href="/inbox" class="nav-item"><span class="icon">📬</span> Inbox</a>
+    <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/calendar" class="nav-item active"><span class="icon">📅</span> Calendar</a>
+    <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
+    <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
+  </div>
+  <div class="sidebar-footer">LEADPRO © 2025</div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">📅 Meeting Calendar</div>
+    <div class="topbar-actions">
+      <a href="/book" target="_blank" class="btn btn-secondary">🔗 Preview Booking Page</a>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Booking link -->
+    <div class="link-box">
+      <div>
+        <div class="link-label">Your Booking Link — Share this with leads</div>
+        <div class="link-url" id="booking-link">http://localhost:5000/book</div>
+      </div>
+      <button class="btn btn-secondary copy-btn" onclick="copyLink()">📋 Copy Link</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Bookings</div>
+        <div class="stat-value blue" id="stat-total">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value warn" id="stat-pending">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Confirmed</div>
+        <div class="stat-value green" id="stat-confirmed">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Cancelled</div>
+        <div class="stat-value muted" id="stat-cancelled">0</div>
+      </div>
+    </div>
+
+    <!-- Filter tabs -->
+    <div class="filter-tabs">
+      <button class="filter-tab active" onclick="filterBookings('all', this)">All</button>
+      <button class="filter-tab" onclick="filterBookings('pending', this)">Pending</button>
+      <button class="filter-tab" onclick="filterBookings('confirmed', this)">Confirmed</button>
+      <button class="filter-tab" onclick="filterBookings('cancelled', this)">Cancelled</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Company</th>
+            <th>Phone</th>
+            <th>Date & Time</th>
+            <th>Message</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="bookings-tbody">
+          <tr><td colspan="9" class="empty-state">
+            <div class="empty-icon">📅</div>
+            <div class="empty-title">No bookings yet</div>
+            <div>Share your booking link with leads to get started.</div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RAW_BOOKINGS = {{ bookings|tojson }};
+let currentFilter = 'all';
+
+function formatSlot(slot) {
+  if (!slot) return '—';
+  try {
+    const dt = new Date(slot.replace(' ', 'T'));
+    return dt.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric', year:'numeric'})
+           + ' ' + dt.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit', hour12:true});
+  } catch(e) { return slot; }
+}
+
+function badgeHTML(status) {
+  const cls = {pending:'badge-pending', confirmed:'badge-confirmed', cancelled:'badge-cancelled'}[status] || 'badge-pending';
+  const icon = {pending:'⏳', confirmed:'✅', cancelled:'❌'}[status] || '⏳';
+  return `<span class="badge ${cls}">${icon} ${status}</span>`;
+}
+
+function renderTable(bookings) {
+  const tbody = document.getElementById('bookings-tbody');
+  if (!bookings.length) {
+    tbody.innerHTML = `<tr><td colspan="9">
+      <div class="empty-state">
+        <div class="empty-icon">📅</div>
+        <div class="empty-title">No bookings found</div>
+        <div>No bookings match the current filter.</div>
+      </div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = bookings.map((b, i) => `
+    <tr id="row-${b.id}">
+      <td style="color:var(--muted);font-size:12px;">#${b.id}</td>
+      <td><strong>${b.name || '—'}</strong></td>
+      <td style="color:#94a3b8;">${b.email || '—'}</td>
+      <td>${b.company || '—'}</td>
+      <td>${b.phone || '—'}</td>
+      <td style="font-size:13px;color:var(--accent2);">${formatSlot(b.slot_datetime)}</td>
+      <td style="max-width:180px;font-size:12px;color:var(--muted);">${(b.message||'').slice(0,60)|| '—'}</td>
+      <td id="status-${b.id}">${badgeHTML(b.status)}</td>
+      <td>
+        <div class="action-btns">
+          ${b.status !== 'confirmed' ? `<button class="act-btn" onclick="updateStatus(${b.id},'confirmed')">Confirm</button>` : ''}
+          ${b.status !== 'cancelled' ? `<button class="act-btn danger" onclick="updateStatus(${b.id},'cancelled')">Cancel</button>` : ''}
+          ${b.status === 'cancelled' ? `<button class="act-btn" onclick="updateStatus(${b.id},'pending')">Restore</button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function calcStats() {
+  const total = RAW_BOOKINGS.length;
+  const pending = RAW_BOOKINGS.filter(b => b.status === 'pending').length;
+  const confirmed = RAW_BOOKINGS.filter(b => b.status === 'confirmed').length;
+  const cancelled = RAW_BOOKINGS.filter(b => b.status === 'cancelled').length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-confirmed').textContent = confirmed;
+  document.getElementById('stat-cancelled').textContent = cancelled;
+}
+
+function filterBookings(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = filter === 'all' ? RAW_BOOKINGS : RAW_BOOKINGS.filter(b => b.status === filter);
+  renderTable(filtered);
+}
+
+async function updateStatus(id, status) {
+  try {
+    const resp = await fetch(`/api/bookings/${id}/update`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({status})
+    });
+    const data = await resp.json();
+    if (data.success) {
+      const b = RAW_BOOKINGS.find(x => x.id === id);
+      if (b) b.status = status;
+      calcStats();
+      const filtered = currentFilter === 'all' ? RAW_BOOKINGS : RAW_BOOKINGS.filter(x => x.status === currentFilter);
+      renderTable(filtered);
+      showToast(`Booking #${id} marked as ${status}.`);
+    }
+  } catch(e) { showToast('Failed to update.'); }
+}
+
+function copyLink() {
+  const url = document.getElementById('booking-link').textContent;
+  navigator.clipboard.writeText(url).then(() => showToast('Booking link copied!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+calcStats();
+renderTable(RAW_BOOKINGS);
+</script>
+</body>
+</html>
+

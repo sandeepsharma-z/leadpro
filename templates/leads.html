@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leads — LeadPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--border:#252535;
+  --accent:#00ff88;--accent2:#0066ff;--danger:#ff3366;--warn:#ffaa00;
+  --text:#e8e8f0;--muted:#666680;--font-mono:'Space Mono',monospace;--font:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+.logo{padding:28px 24px 20px;border-bottom:1px solid var(--border);}
+.logo-text{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-1px;}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:2px;text-transform:uppercase;}
+.nav{flex:1;padding:16px 12px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:all 0.15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(0,255,136,0.08);color:var(--accent);}
+.nav-item .icon{font-size:18px;width:22px;text-align:center;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:auto;box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.sidebar-footer{padding:16px 24px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:10px;color:var(--muted);}
+.main{margin-left:240px;min-height:100vh;}
+.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);}
+.topbar-title{font-size:22px;font-weight:700;}
+.content{padding:32px;}
+.btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;transition:all 0.15s;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#00dd77;transform:translateY(-1px);}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-danger{background:rgba(255,51,102,0.1);color:var(--danger);border:1px solid rgba(255,51,102,0.3);}
+.btn-danger:hover{background:var(--danger);color:white;}
+.btn-blue{background:rgba(0,102,255,0.15);color:var(--accent2);border:1px solid rgba(0,102,255,0.3);}
+.btn-blue:hover{background:var(--accent2);color:white;}
+.btn-sm{padding:7px 14px;font-size:12px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;}
+.form-input,.form-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 13px;color:var(--text);font-family:var(--font);font-size:13px;transition:border-color 0.2s;outline:none;}
+.form-input:focus,.form-select:focus{border-color:var(--accent);}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;font-family:var(--font-mono);}
+.badge-new{background:rgba(0,255,136,0.1);color:var(--accent);}
+.badge-emailed{background:rgba(0,102,255,0.1);color:var(--accent2);}
+.badge-interested{background:rgba(170,68,255,0.1);color:#aa44ff;}
+.badge-closed{background:rgba(255,170,0,0.1);color:var(--warn);}
+
+/* TABLE */
+.leads-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{padding:11px 14px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody td{padding:12px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+tbody tr:hover td{background:rgba(255,255,255,0.02);}
+tbody tr.selected td{background:rgba(0,255,136,0.05);}
+
+.filters{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;}
+.filter-select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;cursor:pointer;}
+.filter-select:focus{border-color:var(--accent);}
+
+.action-bar{display:flex;gap:10px;align-items:center;padding:14px 20px;background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.2);border-radius:10px;margin-bottom:20px;display:none;}
+.action-bar.show{display:flex;}
+.selected-count{font-size:13px;font-weight:600;color:var(--accent);margin-right:auto;}
+
+/* SEND MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:none;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:560px;max-width:95vw;max-height:85vh;overflow-y:auto;}
+.modal-title{font-size:20px;font-weight:700;margin-bottom:8px;}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.form-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.form-group{margin-bottom:16px;}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:12px 0;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width 0.5s;border-radius:3px;}
+
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 20px;font-size:14px;max-width:320px;transform:translateY(100px);opacity:0;transition:all 0.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:var(--accent);}
+.toast.error{border-color:var(--danger);}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="logo"><div class="logo-text">⚡ LeadPro</div><div class="logo-sub">Lead Engine v1.0</div></div>
+  <div class="nav">
+    <a href="/" class="nav-item"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/leads" class="nav-item {% if (page_mode or 'all') != 'cold' %}active{% endif %}"><span class="icon">👥</span> All Leads {% if (page_mode or 'all') != 'cold' %}<span class="status-dot"></span>{% endif %}</a>
+    <a href="/cold-leads" class="nav-item {% if (page_mode or '') == 'cold' %}active{% endif %}"><span class="icon">🧊</span> Cold Leads {% if (page_mode or '') == 'cold' %}<span class="status-dot"></span>{% endif %}</a>
+    <a href="/gmb-scraper" class="nav-item"><span class="icon">🗺️</span> GMB Scraper</a>
+    <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
+    <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
+    <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
+  </div>
+  <div class="sidebar-footer">LEADPRO © 2025</div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">{% if (page_mode or '') == 'cold' %}Cold Leads{% else %}All Leads{% endif %}</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+      <a href="/" class="btn btn-primary btn-sm">+ Add Lead</a>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- FILTERS -->
+    <div class="filters">
+      <select class="filter-select" id="f-service" onchange="applyFilters()">
+        <option value="">All Services</option>
+        <option>Website Development</option>
+        <option>SEO (Search Engine Optimization)</option>
+        <option>Logo Design</option>
+        <option>Social Media Management</option>
+        <option>App Development</option>
+        <option>E-commerce Solutions</option>
+        <option>UI/UX Design</option>
+        <option>Branding & Graphic Design</option>
+        <option>CMS Development</option>
+        <option>Website Maintenance</option>
+      </select>
+      <select class="filter-select" id="f-status" onchange="applyFilters()">
+        <option value="">All Status</option>
+        <option value="new">New</option>
+        <option value="emailed">Emailed</option>
+        <option value="interested">Interested</option>
+        <option value="closed">Closed</option>
+      </select>
+      <input type="text" class="form-input" id="f-search" placeholder="🔍  Search name or email..." style="width:240px;" oninput="applyFilters()">
+      <span id="lead-count" style="font-size:13px;color:var(--muted);margin-left:auto"></span>
+      <button class="btn btn-secondary btn-sm" onclick="selectAll()">☑ Select All</button>
+      <button class="btn btn-secondary btn-sm" onclick="clearSelection()">✕ Clear</button>
+    </div>
+
+    <!-- ACTION BAR (shows when leads selected) -->
+    <div class="action-bar" id="action-bar">
+      <span class="selected-count" id="selected-count">0 selected</span>
+      <button class="btn btn-blue btn-sm" onclick="openSendModal()">📧 Send Emails</button>
+      <button class="btn btn-secondary btn-sm" onclick="markStatus('interested')">⭐ Mark Interested</button>
+      <button class="btn btn-secondary btn-sm" onclick="markStatus('closed')">✓ Mark Closed</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑 Delete</button>
+    </div>
+
+    <!-- LEADS TABLE -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="leads-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="check-all" onchange="toggleAll(this)"></th>
+              <th>#</th>
+              <th>Business Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Location</th>
+              <th>Service Needed</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Added</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="leads-tbody">
+            <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SEND EMAIL MODAL -->
+<div class="modal-overlay" id="send-modal">
+  <div class="modal">
+    <div class="modal-title">📧 Send Bulk Emails</div>
+    <div class="modal-sub" id="modal-sub">Sending to selected leads</div>
+    <div class="form-group">
+      <label class="form-label">Select Campaign</label>
+      <select class="form-select" id="camp-select" onchange="loadCampaignPreview()">
+        <option value="">— Choose a campaign —</option>
+      </select>
+    </div>
+    <div id="camp-preview" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px;font-size:13px;">
+      <div id="camp-subject" style="font-weight:600;margin-bottom:8px"></div>
+      <div id="camp-body" style="color:var(--muted);font-size:12px;max-height:120px;overflow:hidden"></div>
+    </div>
+    <div id="send-progress" style="display:none">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span id="prog-text">Sending...</span>
+        <span id="prog-count"></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+      <div id="prog-current" style="font-size:12px;color:var(--muted);font-family:var(--font-mono)"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" id="send-btn" onclick="startSending()">🚀 Start Sending</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let allLeads = [], selectedIds = new Set(), pollInterval = null;
+const urlParams = new URLSearchParams(window.location.search);
+const sourceFilter = urlParams.get('source') || '';
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type==='success'?'✓ ':'✗ ') + msg;
+  t.className = `toast ${type} show`;
+  setTimeout(()=>t.className='toast', 3500);
+}
+
+const statusBadge = s => ({
+  new:'<span class="badge badge-new">NEW</span>',
+  emailed:'<span class="badge badge-emailed">EMAILED</span>',
+  interested:'<span class="badge badge-interested">INTERESTED</span>',
+  closed:'<span class="badge badge-closed">CLOSED</span>',
+}[s]||`<span class="badge">${s}</span>`);
+
+async function loadLeads() {
+  const qs = new URLSearchParams();
+  if (sourceFilter) qs.set('source', sourceFilter);
+  const apiUrl = '/api/leads' + (qs.toString() ? ('?' + qs.toString()) : '');
+  const res = await fetch(apiUrl);
+  allLeads = await res.json();
+  renderTable(allLeads);
+}
+
+function renderTable(leads) {
+  document.getElementById('lead-count').textContent = `${leads.length} leads`;
+  const tbody = document.getElementById('leads-tbody');
+  if (!leads.length) {
+    tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">No leads found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = leads.map((l,i) => `
+    <tr id="row-${l.id}" class="${selectedIds.has(l.id)?'selected':''}">
+      <td><input type="checkbox" onchange="toggleOne(${l.id},this)" ${selectedIds.has(l.id)?'checked':''}></td>
+      <td style="color:var(--muted);font-family:var(--font-mono);font-size:11px">${i+1}</td>
+      <td><strong>${l.business_name||'—'}</strong></td>
+      <td style="font-family:var(--font-mono);font-size:12px;color:var(--accent2)">${l.email||'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${l.phone||'—'}</td>
+      <td style="color:var(--muted);font-size:12px">${l.location||'—'}</td>
+      <td><span style="font-size:12px;color:var(--accent2)">${l.service_needed||'—'}</span></td>
+      <td style="color:var(--muted);font-size:11px">${l.source||'manual'}</td>
+      <td>${statusBadge(l.status)}</td>
+      <td style="color:var(--muted);font-size:11px;font-family:var(--font-mono)">${(l.added_on||'').split('T')[0]||l.added_on||'—'}</td>
+      <td><button class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:11px" onclick="deleteLead(${l.id})">✕</button></td>
+    </tr>`).join('');
+}
+
+function applyFilters() {
+  const service = document.getElementById('f-service').value;
+  const status = document.getElementById('f-status').value;
+  const search = document.getElementById('f-search').value.toLowerCase();
+  renderTable(allLeads.filter(l =>
+    (!service || l.service_needed === service) &&
+    (!status || l.status === status) &&
+    (!search || (l.business_name||'').toLowerCase().includes(search) || (l.email||'').toLowerCase().includes(search))
+  ));
+}
+
+function toggleOne(id, cb) {
+  if (cb.checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  const row = document.getElementById(`row-${id}`);
+  if (row) row.className = cb.checked ? 'selected' : '';
+  updateActionBar();
+}
+
+function toggleAll(masterCb) {
+  const cbs = document.querySelectorAll('tbody input[type=checkbox]');
+  cbs.forEach(cb => {
+    const id = parseInt(cb.closest('tr').id.replace('row-',''));
+    cb.checked = masterCb.checked;
+    if (masterCb.checked) selectedIds.add(id);
+    else selectedIds.delete(id);
+    cb.closest('tr').className = masterCb.checked ? 'selected' : '';
+  });
+  updateActionBar();
+}
+
+function selectAll() { document.getElementById('check-all').checked = true; toggleAll(document.getElementById('check-all')); }
+function clearSelection() { selectedIds.clear(); loadLeads(); updateActionBar(); }
+function updateActionBar() {
+  const bar = document.getElementById('action-bar');
+  document.getElementById('selected-count').textContent = `${selectedIds.size} selected`;
+  bar.className = selectedIds.size > 0 ? 'action-bar show' : 'action-bar';
+}
+
+async function deleteLead(id) {
+  if (!confirm('Delete this lead?')) return;
+  await fetch(`/api/leads/delete/${id}`, {method:'DELETE'});
+  selectedIds.delete(id);
+  loadLeads();
+  showToast('Lead deleted');
+}
+
+async function deleteSelected() {
+  if (!selectedIds.size || !confirm(`Delete ${selectedIds.size} leads?`)) return;
+  for (const id of selectedIds) await fetch(`/api/leads/delete/${id}`, {method:'DELETE'});
+  selectedIds.clear(); loadLeads(); updateActionBar();
+  showToast(`Deleted successfully`);
+}
+
+async function markStatus(status) {
+  if (!selectedIds.size) return;
+  await fetch('/api/leads/update-status', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ids:[...selectedIds], status})
+  });
+  showToast(`Marked as ${status}`);
+  loadLeads();
+}
+
+function exportCSV() {
+  const visible = allLeads;
+  const rows = [['ID','Business','Email','Phone','Website','Location','Service','Status']];
+  visible.forEach(l => rows.push([l.id,l.business_name,l.email||'',l.phone||'',l.website||'',l.location||'',l.service_needed||'',l.status||'']));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `leads_export_${Date.now()}.csv`; a.click();
+}
+
+// SEND MODAL
+async function openSendModal() {
+  if (!selectedIds.size) { showToast('Select leads first', 'error'); return; }
+  document.getElementById('modal-sub').textContent = `Sending to ${selectedIds.size} selected leads`;
+  document.getElementById('send-progress').style.display = 'none';
+  document.getElementById('send-btn').style.display = 'inline-flex';
+  // fetch campaigns via API
+  const campsRes = await fetch('/api/campaigns-list');
+  const camps = await campsRes.json();
+  const sel = document.getElementById('camp-select');
+  sel.innerHTML = '<option value="">— Choose a campaign —</option>' + camps.map(c => `<option value="${c.id}">${c.name} (${c.service})</option>`).join('');
+  document.getElementById('send-modal').className = 'modal-overlay show';
+}
+
+async function loadCampaignPreview() {
+  const id = document.getElementById('camp-select').value;
+  if (!id) { document.getElementById('camp-preview').style.display='none'; return; }
+  const res = await fetch('/api/campaigns-list');
+  const camps = await res.json();
+  const camp = camps.find(c => c.id == id);
+  if (camp) {
+    document.getElementById('camp-subject').textContent = '📧 ' + camp.subject;
+    document.getElementById('camp-body').innerHTML = camp.body.replace(/<[^>]*>/g,'').substring(0,200) + '...';
+    document.getElementById('camp-preview').style.display = 'block';
+  }
+}
+
+function closeModal() {
+  document.getElementById('send-modal').className = 'modal-overlay';
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+}
+
+async function startSending() {
+  const camp_id = document.getElementById('camp-select').value;
+  if (!camp_id) { showToast('Select a campaign', 'error'); return; }
+  document.getElementById('send-btn').style.display = 'none';
+  document.getElementById('send-progress').style.display = 'block';
+  const res = await fetch('/api/send-emails', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({lead_ids:[...selectedIds], campaign_id: parseInt(camp_id)})
+  });
+  const d = await res.json();
+  if (!d.success) { showToast(d.error, 'error'); return; }
+  pollInterval = setInterval(pollStatus, 1500);
+}
+
+async function pollStatus() {
+  const res = await fetch('/api/send-status');
+  const s = await res.json();
+  const fill = document.getElementById('prog-fill');
+  const pct = s.total ? Math.round((s.sent+s.failed)/s.total*100) : 0;
+  fill.style.width = pct + '%';
+  document.getElementById('prog-count').textContent = `${s.sent+s.failed}/${s.total}`;
+  document.getElementById('prog-text').textContent = `✓ ${s.sent} sent  ✗ ${s.failed} failed`;
+  document.getElementById('prog-current').textContent = `→ ${s.current}`;
+  if (!s.running) {
+    clearInterval(pollInterval); pollInterval = null;
+    showToast(`Done! ${s.sent} sent, ${s.failed} failed`);
+    loadLeads();
+  }
+}
+
+// Load campaigns list for modal
+app.route = async function() {};
+</script>
+
+<script>
+// Expose campaigns list endpoint by fetching from campaigns page
+// We'll add this API endpoint in app.py
+window.addEventListener('DOMContentLoaded', loadLeads);
+</script>
+</body>
+</html>
+

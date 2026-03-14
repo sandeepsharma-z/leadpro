@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LeadPro — Lead Generation Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #1a1a24;
+  --border: #252535;
+  --accent: #00ff88;
+  --accent2: #0066ff;
+  --danger: #ff3366;
+  --warn: #ffaa00;
+  --text: #e8e8f0;
+  --muted: #666680;
+  --font-mono: 'Space Mono', monospace;
+  --font: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  position: fixed; left: 0; top: 0; width: 240px; height: 100vh;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 100;
+}
+.logo {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-text {
+  font-family: var(--font-mono); font-size: 20px; font-weight: 700;
+  color: var(--accent); letter-spacing: -1px;
+}
+.logo-sub { font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 2px; text-transform: uppercase; }
+.nav { flex: 1; padding: 16px 12px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px;
+  border-radius: 8px; color: var(--muted); text-decoration: none;
+  font-size: 14px; font-weight: 500; transition: all 0.15s; margin-bottom: 2px;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(0,255,136,0.08); color: var(--accent); }
+.nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+  margin-left: auto; box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.sidebar-footer { padding: 16px 24px; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+/* MAIN */
+.main { margin-left: 240px; min-height: 100vh; }
+.topbar {
+  padding: 20px 32px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface);
+}
+.topbar-title { font-size: 22px; font-weight: 700; }
+.topbar-badge {
+  background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3);
+  color: var(--accent); padding: 4px 12px; border-radius: 20px;
+  font-family: var(--font-mono); font-size: 11px;
+}
+.content { padding: 32px; }
+
+/* STATS */
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px; position: relative; overflow: hidden; transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--accent); }
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-card.green::before { background: var(--accent); }
+.stat-card.blue::before { background: var(--accent2); }
+.stat-card.red::before { background: var(--danger); }
+.stat-card.yellow::before { background: var(--warn); }
+.stat-card.purple::before { background: #aa44ff; }
+.stat-num { font-family: var(--font-mono); font-size: 32px; font-weight: 700; margin-bottom: 4px; }
+.stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.stat-icon { position: absolute; right: 16px; top: 16px; font-size: 28px; opacity: 0.15; }
+
+/* QUICK ADD */
+.section { margin-bottom: 32px; }
+.section-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+.form-group { margin-bottom: 0; }
+.form-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 14px; color: var(--text); font-family: var(--font); font-size: 14px;
+  transition: border-color 0.2s; outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,255,136,0.08);
+}
+.form-select option { background: var(--surface2); }
+
+.btn {
+  padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+  font-family: var(--font); font-size: 14px; font-weight: 600; transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { background: #00dd77; transform: translateY(-1px); }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: rgba(255,51,102,0.1); color: var(--danger); border: 1px solid rgba(255,51,102,0.3); }
+.btn-danger:hover { background: var(--danger); color: white; }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* RECENT LEADS */
+.leads-table { width: 100%; border-collapse: collapse; }
+.leads-table th { padding: 10px 14px; text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); }
+.leads-table td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.leads-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  font-family: var(--font-mono);
+}
+.badge-new { background: rgba(0,255,136,0.1); color: var(--accent); }
+.badge-emailed { background: rgba(0,102,255,0.1); color: var(--accent2); }
+.badge-interested { background: rgba(170,68,255,0.1); color: #aa44ff; }
+.badge-closed { background: rgba(255,170,0,0.1); color: var(--warn); }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 20px; font-size: 14px; max-width: 320px;
+  transform: translateY(100px); opacity: 0; transition: all 0.3s;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: var(--accent); }
+.toast.error { border-color: var(--danger); }
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-text">⚡ LeadPro</div>
+    <div class="logo-sub">Lead Engine v1.0</div>
+  </div>
+  <div class="nav">
+    <a href="/" class="nav-item active"><span class="icon">🏠</span> Dashboard <span class="status-dot"></span></a>
+    <a href="/leads" class="nav-item"><span class="icon">👥</span> All Leads</a>
+    <a href="/cold-leads" class="nav-item"><span class="icon">🧊</span> Cold Leads</a>
+    <a href="/gmb-scraper" class="nav-item"><span class="icon">🗺️</span> GMB Scraper</a>
+    <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
+    <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
+    <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
+  </div>
+  <div class="sidebar-footer">LEADPRO © 2025<br>ALL SYSTEMS NOMINAL</div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div class="topbar-badge">● SYSTEM ACTIVE</div>
+  </div>
+  <div class="content">
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat-card green">
+        <div class="stat-icon">👥</div>
+        <div class="stat-num">{{ total_leads }}</div>
+        <div class="stat-label">Total Leads</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-icon">🆕</div>
+        <div class="stat-num">{{ new_leads }}</div>
+        <div class="stat-label">New Leads</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-icon">📧</div>
+        <div class="stat-num">{{ emailed }}</div>
+        <div class="stat-label">Emailed</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon">📤</div>
+        <div class="stat-num">{{ total_sent }}</div>
+        <div class="stat-label">Emails Sent</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-num">{{ campaigns }}</div>
+        <div class="stat-label">Campaigns</div>
+      </div>
+    </div>
+
+    <!-- QUICK ADD LEAD -->
+    <div class="section">
+      <div class="section-title">âš¡ Quick Add Lead</div>
+      <div class="card">
+        <div class="grid-3" style="gap:16px;margin-bottom:16px">
+          <div class="form-group">
+            <label class="form-label">Business Name</label>
+            <input type="text" class="form-input" id="q-biz" placeholder="Sharma Enterprises">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email *</label>
+            <input type="email" class="form-input" id="q-email" placeholder="info@business.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="text" class="form-input" id="q-phone" placeholder="+91 98xxx xxxxx">
+          </div>
+        </div>
+        <div class="grid-3" style="gap:16px;margin-bottom:16px">
+          <div class="form-group">
+            <label class="form-label">Website (if any)</label>
+            <input type="text" class="form-input" id="q-web" placeholder="www.example.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <input type="text" class="form-input" id="q-loc" placeholder="Delhi, Mumbai...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Service Needed</label>
+            <select class="form-select" id="q-service">
+              <option value="">— Select Service —</option>
+              <option>Website Development</option>
+              <option>SEO (Search Engine Optimization)</option>
+              <option>Logo Design</option>
+              <option>Social Media Management</option>
+              <option>App Development</option>
+              <option>E-commerce Solutions</option>
+              <option>UI/UX Design</option>
+              <option>Branding & Graphic Design</option>
+              <option>CMS Development</option>
+              <option>Website Maintenance</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="quickAdd()">+ Add Lead</button>
+      </div>
+    </div>
+
+    <!-- BULK IMPORT CSV -->
+    <div class="section">
+      <div class="section-title">📥 Bulk Import (CSV/Manual)</div>
+      <div class="card">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+          Paste leads in CSV format: <code style="background:var(--bg);padding:2px 8px;border-radius:4px;font-family:var(--font-mono);font-size:12px">business_name, email, phone, website, location, service_needed</code>
+        </p>
+        <textarea class="form-textarea" id="csv-input" rows="6" 
+          placeholder="Sharma Electronics, sharma@gmail.com, 9812345678, , Delhi, Website Development
+Gupta Tours, gupta@tours.in, 9876543210, gupta.in, Mumbai, SEO (Search Engine Optimization)"></textarea>
+        <div style="display:flex;gap:12px;margin-top:12px">
+          <button class="btn btn-primary" onclick="importCSV()">📥 Import Leads</button>
+          <button class="btn btn-secondary" onclick="downloadTemplate()">⬇ Download Template</button>
+        </div>
+        <div id="import-result" style="margin-top:12px;font-size:13px;display:none"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">📄 Upload Document (Name + Email Extractor)</div>
+      <div class="card">
+        <div class="grid-3" style="gap:16px;margin-bottom:16px">
+          <div class="form-group">
+            <label class="form-label">Document</label>
+            <input type="file" class="form-input" id="doc-file" accept=".txt,.csv,.pdf,.docx,.xlsx,.xlsm">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default Service</label>
+            <select class="form-select" id="doc-service">
+              <option value="">— Optional —</option>
+              <option>Website Development</option>
+              <option>SEO (Search Engine Optimization)</option>
+              <option>Logo Design</option>
+              <option>Social Media Management</option>
+              <option>App Development</option>
+              <option>E-commerce Solutions</option>
+              <option>UI/UX Design</option>
+              <option>Branding & Graphic Design</option>
+              <option>CMS Development</option>
+              <option>Website Maintenance</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default Location</label>
+            <input type="text" class="form-input" id="doc-location" placeholder="Delhi / Mumbai / etc">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="uploadDocument()">🧠 Extract & Save Leads</button>
+        <div id="doc-result" style="margin-top:12px;font-size:13px;display:none"></div>
+      </div>
+    </div>
+
+    <!-- RECENT LEADS TABLE -->
+    <div class="section">
+      <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🕒 Recent Leads</span>
+        <a href="/leads" class="btn btn-secondary btn-sm">View All →</a>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <table class="leads-table" id="recent-table">
+          <thead>
+            <tr>
+              <th>Business</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Location</th>
+              <th>Service Needed</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="recent-tbody">
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">Loading leads...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'success' ? '✓ ' : '✗ ') + msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+async function quickAdd() {
+  const email = document.getElementById('q-email').value.trim();
+  if (!email) { showToast('Email is required', 'error'); return; }
+  const res = await fetch('/api/leads/add', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      business_name: document.getElementById('q-biz').value,
+      email, phone: document.getElementById('q-phone').value,
+      website: document.getElementById('q-web').value,
+      location: document.getElementById('q-loc').value,
+      service_needed: document.getElementById('q-service').value,
+    })
+  });
+  const d = await res.json();
+  if (d.success && d.inserted) {
+    showToast('Lead added successfully!');
+    ['q-biz','q-email','q-phone','q-web','q-loc'].forEach(id => document.getElementById(id).value='');
+    loadRecent();
+  } else if (d.success && !d.inserted) {
+    showToast('Email already exists in DB', 'error');
+  } else showToast(d.error || 'Error', 'error');
+}
+
+async function importCSV() {
+  const raw = document.getElementById('csv-input').value.trim();
+  if (!raw) return;
+  const lines = raw.split('\n').filter(l => l.trim());
+  const leads = lines.map(line => {
+    const parts = line.split(',').map(p => p.trim());
+    return {
+      business_name: parts[0]||'', email: parts[1]||'',
+      phone: parts[2]||'', website: parts[3]||'',
+      location: parts[4]||'', service_needed: parts[5]||'', source: 'csv-import'
+    };
+  }).filter(l => l.email);
+  const res = await fetch('/api/leads/bulk-add', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ leads })
+  });
+  const d = await res.json();
+  const r = document.getElementById('import-result');
+  r.style.display = 'block';
+  r.innerHTML = `<span style="color:var(--accent)">✓ Imported ${d.inserted} new leads</span> (${lines.length - d.inserted} duplicates skipped)`;
+  loadRecent();
+}
+
+async function uploadDocument() {
+  const file = document.getElementById('doc-file').files[0];
+  if (!file) { showToast('Please select a document file', 'error'); return; }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('service_needed', document.getElementById('doc-service').value || '');
+  fd.append('location', document.getElementById('doc-location').value || '');
+  const res = await fetch('/api/leads/upload-doc', { method: 'POST', body: fd });
+  const d = await res.json();
+  const box = document.getElementById('doc-result');
+  box.style.display = 'block';
+  if (d.success) {
+    box.innerHTML = `<span style="color:var(--accent)">✓ Found ${d.found}, inserted ${d.inserted}</span> (${d.duplicates} duplicates skipped)`;
+    showToast('Document processed successfully');
+    loadRecent();
+  } else {
+    box.innerHTML = `<span style="color:var(--danger)">✕ ${d.error || 'Upload failed'}</span>`;
+    showToast(d.error || 'Upload failed', 'error');
+  }
+}
+
+function downloadTemplate() {
+  const csv = `business_name,email,phone,website,location,service_needed
+Sharma Electronics,sharma@gmail.com,9812345678,,Delhi,Website Development
+Gupta Travels,info@guptatours.com,9876543210,guptatours.com,Mumbai,SEO (Search Engine Optimization)`;
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'leads_template.csv';
+  a.click();
+}
+
+const statusBadge = s => ({
+  new: '<span class="badge badge-new">NEW</span>',
+  emailed: '<span class="badge badge-emailed">EMAILED</span>',
+  interested: '<span class="badge badge-interested">INTERESTED</span>',
+  closed: '<span class="badge badge-closed">CLOSED</span>',
+}[s] || `<span class="badge">${s}</span>`);
+
+async function loadRecent() {
+  const res = await fetch('/api/leads');
+  const leads = await res.json();
+  const tbody = document.getElementById('recent-tbody');
+  if (!leads.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">No leads yet. Start adding!</td></tr>';
+    return;
+  }
+  tbody.innerHTML = leads.slice(0,10).map(l => `
+    <tr>
+      <td><strong>${l.business_name||'—'}</strong></td>
+      <td style="font-family:var(--font-mono);font-size:12px">${l.email}</td>
+      <td style="color:var(--muted)">${l.phone||'—'}</td>
+      <td style="color:var(--muted)">${l.location||'—'}</td>
+      <td><span style="font-size:12px;color:var(--accent2)">${l.service_needed||'—'}</span></td>
+      <td>${statusBadge(l.status)}</td>
+    </tr>`).join('');
+}
+loadRecent();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0a0f1e;color:#e8eaf6;font-family:'DM Sans',sans-serif;min-height:100vh;}
+.hero{background:linear-gradient(135deg,#0a0f1e 0%,#111827 100%);padding:48px 24px 36px;text-align:center;border-bottom:1px solid #1e293b;}
+.hero h1{font-size:32px;font-weight:700;color:#fff;margin-bottom:10px;}
+.hero p{color:#94a3b8;font-size:16px;max-width:500px;margin:0 auto;}
+.accent{color:var(--accent,#3b82f6);}
+.container{max-width:900px;margin:0 auto;padding:40px 24px;}
+.step{display:none;}
+.step.active{display:block;}
+
+/* ── STEP 1: Date picker ── */
+.calendar-wrap{background:#111827;border:1px solid #1e293b;border-radius:16px;overflow:hidden;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #1e293b;}
+.cal-header h2{font-size:18px;font-weight:600;color:#fff;}
+.nav-btn{background:none;border:1px solid #1e293b;color:#94a3b8;width:36px;height:36px;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.nav-btn:hover{border-color:#3b82f6;color:#3b82f6;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:16px;}
+.cal-day-label{text-align:center;font-size:11px;color:#475569;font-weight:600;text-transform:uppercase;padding:8px 0;}
+.cal-day{text-align:center;padding:10px 4px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.15s;color:#94a3b8;}
+.cal-day.empty{cursor:default;}
+.cal-day.past{color:#2d3748;cursor:not-allowed;}
+.cal-day.available{color:#e2e8f0;cursor:pointer;}
+.cal-day.available:hover{background:#1e3a5f;color:#3b82f6;}
+.cal-day.selected{background:#3b82f6;color:#fff!important;font-weight:700;}
+.cal-day.today{border:1px solid #3b82f6;color:#3b82f6;}
+.cal-day.no-slots{color:#374151;cursor:not-allowed;}
+
+/* ── STEP 2: Time slots ── */
+.back-btn{background:none;border:none;color:#3b82f6;cursor:pointer;font-size:14px;font-family:inherit;margin-bottom:20px;display:inline-flex;align-items:center;gap:6px;padding:0;}
+.back-btn:hover{color:#93c5fd;}
+.slots-heading{font-size:20px;font-weight:700;color:#fff;margin-bottom:6px;}
+.slots-sub{color:#64748b;font-size:14px;margin-bottom:24px;}
+.slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;}
+.slot-btn{background:#111827;border:1px solid #1e293b;border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;font-family:inherit;font-size:15px;font-weight:600;color:#e2e8f0;transition:all 0.15s;}
+.slot-btn:hover{border-color:#3b82f6;color:#3b82f6;background:#0f1e35;}
+.slot-btn.selected{background:#3b82f6;border-color:#3b82f6;color:#fff;}
+
+/* ── STEP 3: Form ── */
+.form-card{background:#111827;border:1px solid #1e293b;border-radius:16px;padding:32px;}
+.form-heading{font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;}
+.form-sub{color:#64748b;font-size:14px;margin-bottom:28px;}
+.slot-badge{display:inline-flex;align-items:center;gap:8px;background:#0f2d4a;border:1px solid #1d4ed8;border-radius:8px;padding:8px 14px;font-size:14px;color:#93c5fd;margin-bottom:24px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.form-group{margin-bottom:16px;}
+label{display:block;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:600;}
+input,textarea{width:100%;background:#0a0f1e;border:1px solid #1e293b;border-radius:8px;padding:11px 14px;color:#e2e8f0;font-family:inherit;font-size:14px;outline:none;transition:border-color 0.2s;}
+input:focus,textarea:focus{border-color:#3b82f6;}
+textarea{resize:vertical;min-height:80px;}
+.required{color:#ef4444;}
+.submit-btn{width:100%;background:#3b82f6;border:none;border-radius:10px;padding:15px;color:#fff;font-family:inherit;font-size:16px;font-weight:700;cursor:pointer;transition:background 0.2s;margin-top:8px;}
+.submit-btn:hover{background:#2563eb;}
+.submit-btn:disabled{background:#1e3a5f;cursor:not-allowed;}
+
+/* ── STEP 4: Success ── */
+.success-card{background:#111827;border:1px solid #1e293b;border-radius:16px;padding:48px 32px;text-align:center;}
+.success-icon{font-size:64px;margin-bottom:20px;}
+.success-title{font-size:26px;font-weight:700;color:#fff;margin-bottom:10px;}
+.success-sub{color:#64748b;font-size:15px;max-width:400px;margin:0 auto 28px;}
+.detail-box{background:#0a0f1e;border:1px solid #1e293b;border-radius:10px;padding:16px 24px;display:inline-block;text-align:left;min-width:260px;}
+.detail-box p{font-size:14px;color:#94a3b8;margin-bottom:6px;}
+.detail-box p:last-child{margin:0;}
+.detail-box strong{color:#fff;}
+.book-another{margin-top:24px;background:none;border:1px solid #1e293b;color:#94a3b8;padding:10px 20px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:14px;transition:all 0.2s;}
+.book-another:hover{border-color:#3b82f6;color:#3b82f6;}
+
+@media(max-width:600px){
+  .form-row{grid-template-columns:1fr;}
+  .hero h1{font-size:24px;}
+  .slots-grid{grid-template-columns:repeat(3,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="hero" style="--accent:{{ brand_primary }}">
+  <h1>{{ title }}</h1>
+  <p>{{ subtitle }}</p>
+</div>
+
+<div class="container">
+
+  <!-- STEP 1: Pick a date -->
+  <div class="step active" id="step-date">
+    <div class="calendar-wrap">
+      <div class="cal-header">
+        <button class="nav-btn" onclick="prevMonth()">&#8249;</button>
+        <h2 id="cal-month-label"></h2>
+        <button class="nav-btn" onclick="nextMonth()">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Pick a time slot -->
+  <div class="step" id="step-time">
+    <button class="back-btn" onclick="goStep('step-date')">&#8592; Change date</button>
+    <div class="slots-heading" id="slots-heading"></div>
+    <div class="slots-sub">Pick a time that works for you</div>
+    <div class="slots-grid" id="slots-grid"></div>
+  </div>
+
+  <!-- STEP 3: Fill the form -->
+  <div class="step" id="step-form">
+    <button class="back-btn" onclick="goStep('step-time')">&#8592; Change time</button>
+    <div class="form-card">
+      <div class="form-heading">Your Details</div>
+      <div class="form-sub">Just a few details to confirm your booking.</div>
+      <div class="slot-badge" id="form-slot-badge">📅 <span id="form-slot-label"></span></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name <span class="required">*</span></label>
+          <input type="text" id="f-name" placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label>Email <span class="required">*</span></label>
+          <input type="email" id="f-email" placeholder="john@company.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Company / Business</label>
+          <input type="text" id="f-company" placeholder="Acme Corp">
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <input type="tel" id="f-phone" placeholder="+91 98765 43210">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Anything you'd like us to know?</label>
+        <textarea id="f-message" placeholder="Optional — share your goals, questions, or context..."></textarea>
+      </div>
+      <button class="submit-btn" id="submit-btn" onclick="submitBooking()">Confirm Booking</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Success -->
+  <div class="step" id="step-success">
+    <div class="success-card">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">You're all booked!</div>
+      <div class="success-sub">We've sent a confirmation to your email. We'll follow up with call details shortly.</div>
+      <div class="detail-box">
+        <p>📅 <strong id="s-slot"></strong></p>
+        <p>👤 <strong id="s-name"></strong></p>
+        <p>✉️ <strong id="s-email"></strong></p>
+      </div>
+      <br>
+      <button class="book-another" onclick="reset()">Book another time</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SLOTS = {{ slots_json|safe }};
+let viewYear, viewMonth, selectedDate = null, selectedTime = null;
+
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function init() {
+  const now = new Date();
+  viewYear  = now.getFullYear();
+  viewMonth = now.getMonth();
+  renderCalendar();
+}
+
+function renderCalendar() {
+  document.getElementById('cal-month-label').textContent = MONTHS[viewMonth] + ' ' + viewYear;
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Day labels
+  DAYS.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const first = new Date(viewYear, viewMonth, 1).getDay();
+  const total = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  for (let i = 0; i < first; i++) {
+    const el = document.createElement('div'); el.className = 'cal-day empty'; grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= total; d++) {
+    const date = new Date(viewYear, viewMonth, d);
+    const dateStr = toDateStr(date);
+    const el = document.createElement('div');
+    el.textContent = d;
+    const isPast = date < today;
+    const isToday = date.toDateString() === today.toDateString();
+    const hasSlots = SLOTS[dateStr] && SLOTS[dateStr].length > 0;
+
+    if (isPast) {
+      el.className = 'cal-day past';
+    } else if (!hasSlots) {
+      el.className = 'cal-day no-slots' + (isToday ? ' today' : '');
+      el.title = 'No slots available';
+    } else {
+      el.className = 'cal-day available' + (isToday ? ' today' : '');
+      if (selectedDate === dateStr) el.classList.add('selected');
+      el.onclick = () => pickDate(dateStr, el);
+    }
+    grid.appendChild(el);
+  }
+}
+
+function pickDate(dateStr, el) {
+  selectedDate = dateStr;
+  document.querySelectorAll('.cal-day.selected').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+  showTimeSlots(dateStr);
+}
+
+function showTimeSlots(dateStr) {
+  const date = new Date(dateStr + 'T00:00:00');
+  const label = date.toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('slots-heading').textContent = label;
+
+  const grid = document.getElementById('slots-grid');
+  grid.innerHTML = '';
+  (SLOTS[dateStr] || []).forEach(time => {
+    const btn = document.createElement('button');
+    btn.className = 'slot-btn';
+    btn.textContent = formatTime(time);
+    btn.onclick = () => pickSlot(dateStr, time, btn);
+    grid.appendChild(btn);
+  });
+  goStep('step-time');
+}
+
+function pickSlot(dateStr, time, btn) {
+  selectedTime = time;
+  document.querySelectorAll('.slot-btn.selected').forEach(x => x.classList.remove('selected'));
+  btn.classList.add('selected');
+
+  const date = new Date(dateStr + 'T00:00:00');
+  const dateLabel = date.toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('form-slot-label').textContent = dateLabel + ' at ' + formatTime(time);
+  goStep('step-form');
+}
+
+async function submitBooking() {
+  const name    = document.getElementById('f-name').value.trim();
+  const email   = document.getElementById('f-email').value.trim();
+  const company = document.getElementById('f-company').value.trim();
+  const phone   = document.getElementById('f-phone').value.trim();
+  const message = document.getElementById('f-message').value.trim();
+
+  if (!name) { alert('Please enter your name.'); return; }
+  if (!email) { alert('Please enter your email.'); return; }
+  if (!selectedDate || !selectedTime) { alert('Please pick a date and time.'); return; }
+
+  const slot = selectedDate + ' ' + selectedTime;
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Booking...';
+
+  try {
+    const resp = await fetch('/api/book', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({name, email, company, phone, slot, message})
+    });
+    const data = await resp.json();
+    if (data.success) {
+      const date = new Date(selectedDate + 'T00:00:00');
+      const dateLabel = date.toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric',year:'numeric'});
+      document.getElementById('s-slot').textContent = dateLabel + ' at ' + formatTime(selectedTime);
+      document.getElementById('s-name').textContent  = name;
+      document.getElementById('s-email').textContent = email;
+      goStep('step-success');
+    } else {
+      alert(data.error || 'Booking failed. Please try again.');
+      btn.disabled = false; btn.textContent = 'Confirm Booking';
+    }
+  } catch(e) {
+    alert('Network error. Please try again.');
+    btn.disabled = false; btn.textContent = 'Confirm Booking';
+  }
+}
+
+function goStep(id) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function prevMonth() {
+  viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  renderCalendar();
+}
+function nextMonth() {
+  viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  renderCalendar();
+}
+
+function toDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatTime(t) {
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+
+function reset() {
+  selectedDate = null; selectedTime = null;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-email').value = '';
+  document.getElementById('f-company').value = '';
+  document.getElementById('f-phone').value = '';
+  document.getElementById('f-message').value = '';
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-btn').textContent = 'Confirm Booking';
+  init(); goStep('step-date');
+}
+
+init();
+</script>
+</body>
+</html>

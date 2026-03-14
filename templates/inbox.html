@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inbox + OpenCrawl - LeadPro</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;background:#0c1018;color:#e8eefb;margin:0}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:#111827;border-right:1px solid #1f2b45;display:flex;flex-direction:column;z-index:100}
+.logo{padding:26px 22px 18px;border-bottom:1px solid #1f2b45}
+.logo-text{font-size:22px;font-weight:700;color:#00ff88}
+.logo-sub{font-size:11px;color:#7f8ba5;letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.nav{flex:1;padding:14px 10px;overflow:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:#9aa6bf;text-decoration:none;font-size:14px;margin-bottom:4px}
+.nav-item:hover{background:#1a243a;color:#e8eefb}
+.nav-item.active{background:rgba(0,255,136,0.1);color:#00ff88}
+.nav-item .icon{width:20px;text-align:center}
+.sidebar-footer{padding:14px 20px;border-top:1px solid #1f2b45;color:#7f8ba5;font-size:10px}
+.main{margin-left:240px}
+.wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+.card{background:#141b28;border:1px solid #25314a;border-radius:12px;padding:16px;margin-bottom:16px}
+input,textarea,button{font:inherit}
+input,textarea{width:100%;background:#0d1320;color:#e8eefb;border:1px solid #2a3550;border-radius:8px;padding:9px}
+button{background:#1e66f5;color:#fff;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}
+button.s{background:#334155}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #25314a;text-align:left;font-size:13px;vertical-align:top}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.muted{color:#9aa6bf;font-size:12px}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="logo"><div class="logo-text">⚡ LeadPro</div><div class="logo-sub">Lead Engine v1.0</div></div>
+  <div class="nav">
+    <a href="/" class="nav-item"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/leads" class="nav-item"><span class="icon">👥</span> All Leads</a>
+    <a href="/cold-leads" class="nav-item"><span class="icon">🧊</span> Cold Leads</a>
+    <a href="/gmb-scraper" class="nav-item"><span class="icon">🗺️</span> GMB Scraper</a>
+    <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
+    <a href="/inbox" class="nav-item active"><span class="icon">📬</span> Inbox</a>
+    <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/calendar" class="nav-item"><span class="icon">📅</span> Calendar</a>
+    <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
+    <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
+  </div>
+  <div class="sidebar-footer">LEADPRO © 2025</div>
+</nav>
+<div class="main">
+<div class="wrap">
+  <h2>Inbox Replies + OpenCrawl + WhatsApp (Local)</h2>
+  <p class="muted">Replies sync from IMAP, leads auto-save, reply from same panel. WhatsApp opens on this device browser.</p>
+
+  <div class="card">
+    <h3>Inbox Sync</h3>
+    <button onclick="syncInbox()">Sync Inbox Now</button>
+    <span id="sync-msg" class="muted" style="margin-left:10px"></span>
+  </div>
+
+  <div class="card">
+    <h3>OpenCrawl Import (Website URLs)</h3>
+    <div class="row">
+      <div>
+        <label class="muted">Service Needed</label>
+        <input id="crawl-service" placeholder="Website Development">
+      </div>
+      <div>
+        <label class="muted">Location</label>
+        <input id="crawl-location" placeholder="Delhi">
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <label class="muted">URLs (one per line)</label>
+      <textarea id="crawl-urls" rows="5" placeholder="example.com&#10;https://domain.com"></textarea>
+    </div>
+    <button style="margin-top:10px" onclick="runCrawl()">Run Import</button>
+    <pre id="crawl-out" class="muted"></pre>
+  </div>
+
+  <div class="card">
+    <h3>Inbox Messages</h3>
+    <table>
+      <thead><tr><th>From</th><th>Subject</th><th>Body</th><th>Reply</th><th>WhatsApp</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<script>
+function esc(s){return (s||'').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+async function syncInbox(){
+  const r=await fetch('/api/inbox/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:80})});
+  const d=await r.json();
+  document.getElementById('sync-msg').textContent=d.success?`Fetched ${d.fetched}, inserted ${d.inserted}`:(d.error||'Error');
+  loadMsgs();
+}
+async function loadMsgs(){
+  const r=await fetch('/api/inbox/messages'); const data=await r.json();
+  const rows=document.getElementById('rows');
+  if(!data.length){rows.innerHTML='<tr><td colspan="5" class="muted">No messages yet.</td></tr>';return;}
+  rows.innerHTML=data.map(m=>`<tr>
+    <td><strong>${esc(m.sender_name||'')}</strong><br><span class="muted">${esc(m.sender_email||'')}</span></td>
+    <td>${esc(m.subject||'')}</td>
+    <td>${esc((m.body_text||'').slice(0,180))}</td>
+    <td>
+      <input id="sub-${m.id}" value="Re: ${esc(m.subject||'')}" />
+      <textarea id="body-${m.id}" rows="2">Hi ${esc(m.sender_name||'there')}, thanks for your reply. Let's discuss your requirement.</textarea>
+      <button onclick="replyMsg(${m.id},'${esc(m.sender_email||'')}')">${m.replied?'Replied':'Send Reply'}</button>
+    </td>
+    <td>
+      <input id="phone-${m.id}" placeholder="9198xxxxxx" />
+      <button class="s" onclick="openWa(${m.id})">Open WhatsApp</button>
+    </td>
+  </tr>`).join('');
+}
+async function replyMsg(id,to){
+  const subject=document.getElementById(`sub-${id}`).value;
+  const body=document.getElementById(`body-${id}`).value;
+  const r=await fetch('/api/inbox/reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,to_email:to,subject,body})});
+  const d=await r.json(); alert(d.success?'Reply sent':(d.error||'Error'));
+  loadMsgs();
+}
+async function openWa(id){
+  const phone=document.getElementById(`phone-${id}`).value;
+  const msg='Hi, thanks for connecting with us. Let us continue here.';
+  const r=await fetch('/api/whatsapp/open',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,message:msg})});
+  const d=await r.json(); if(!d.success) alert(d.error||'Error');
+}
+async function runCrawl(){
+  const urls=document.getElementById('crawl-urls').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  const service_needed=document.getElementById('crawl-service').value;
+  const location=document.getElementById('crawl-location').value;
+  const r=await fetch('/api/opencrawl/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({urls,service_needed,location})});
+  const d=await r.json();
+  document.getElementById('crawl-out').textContent=JSON.stringify(d,null,2);
+}
+loadMsgs();
+</script>
+</body>
+</html>
+

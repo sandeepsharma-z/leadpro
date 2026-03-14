@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — LeadPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--border:#252535;--accent:#00ff88;--accent2:#0066ff;--danger:#ff3366;--warn:#ffaa00;--text:#e8e8f0;--muted:#666680;--font-mono:'Space Mono',monospace;--font:'DM Sans',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+.logo{padding:28px 24px 20px;border-bottom:1px solid var(--border);}
+.logo-text{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent);}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:2px;text-transform:uppercase;}
+.nav{flex:1;padding:16px 12px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:all 0.15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(0,255,136,0.08);color:var(--accent);}
+.nav-item .icon{font-size:18px;width:22px;text-align:center;}
+.sidebar-footer{padding:16px 24px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:10px;color:var(--muted);}
+.main{margin-left:240px;}
+.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;background:var(--surface);}
+.topbar-title{font-size:22px;font-weight:700;}
+.content{padding:32px;max-width:640px;}
+.section-title{font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;margin-top:32px;}
+.section-title:first-child{margin-top:0;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:0;}
+.form-group{margin-bottom:18px;}
+.form-label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.form-input,.form-select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:14px;transition:border-color 0.2s;outline:none;}
+.form-input:focus,.form-select:focus{border-color:var(--accent);}
+.form-hint{font-size:11px;color:var(--muted);margin-top:5px;}
+.btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);font-size:14px;font-weight:600;transition:all 0.15s;display:inline-flex;align-items:center;gap:8px;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#00dd77;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.info-box{background:rgba(0,102,255,0.08);border:1px solid rgba(0,102,255,0.2);border-radius:10px;padding:16px;font-size:13px;color:var(--muted);margin-bottom:24px;}
+.info-box strong{color:var(--accent2);}
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 20px;font-size:14px;max-width:320px;transform:translateY(100px);opacity:0;transition:all 0.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-color:var(--accent);}
+.toast.error{border-color:var(--danger);}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="logo"><div class="logo-text">⚡ LeadPro</div><div class="logo-sub">Lead Engine v1.0</div></div>
+  <div class="nav">
+    <a href="/" class="nav-item"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/leads" class="nav-item"><span class="icon">👥</span> All Leads</a>
+    <a href="/cold-leads" class="nav-item"><span class="icon">🧊</span> Cold Leads</a>
+    <a href="/gmb-scraper" class="nav-item"><span class="icon">🗺️</span> GMB Scraper</a>
+    <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
+    <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
+    <a href="/settings" class="nav-item active"><span class="icon">⚙️</span> Settings</a>
+  </div>
+  <div class="sidebar-footer">LEADPRO © 2025</div>
+</nav>
+
+<div class="main">
+  <div class="topbar"><div class="topbar-title">Settings</div></div>
+  <div class="content">
+
+    <div class="info-box">
+      <strong>Hostinger SMTP Setup:</strong><br>
+      Host: <code>smtp.hostinger.com</code> | Port: <code>465</code> (SSL) or <code>587</code> (TLS)<br>
+      Use your full email address as username.
+    </div>
+
+    <div class="section-title">📧 Email Configuration</div>
+    <div class="card">
+      <div class="row">
+        <div class="form-group">
+          <label class="form-label">SMTP Host</label>
+          <input type="text" class="form-input" id="smtp_host" value="{{ settings.smtp_host }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SMTP Port</label>
+          <select class="form-select" id="smtp_port">
+            <option value="465" {% if settings.smtp_port=='465' %}selected{% endif %}>465 (SSL - Recommended)</option>
+            <option value="587" {% if settings.smtp_port=='587' %}selected{% endif %}>587 (TLS)</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label class="form-label">IMAP Host (for replies)</label>
+          <input type="text" class="form-input" id="imap_host" value="{{ settings.imap_host or 'imap.hostinger.com' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">IMAP Port</label>
+          <input type="number" class="form-input" id="imap_port" value="{{ settings.imap_port or '993' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address (Hostinger)</label>
+        <input type="email" class="form-input" id="smtp_user" value="{{ settings.smtp_user }}" placeholder="info@yourdomain.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Password</label>
+        <input type="password" class="form-input" id="smtp_pass" value="{{ settings.smtp_pass }}" placeholder="Your Hostinger email password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Sender Display Name</label>
+        <input type="text" class="form-input" id="sender_name" value="{{ settings.sender_name }}" placeholder="Your Agency Name">
+        <div class="form-hint">This is what recipients see as the sender name</div>
+      </div>
+    </div>
+
+    <div class="section-title">🎨 Brand Assets</div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">White Logo URL (Header)</label>
+        <input type="text" class="form-input" id="logo_white_url" value="{{ settings.logo_white_url or 'https://solvinex.com/uploads/footer-logo-white.png' }}">
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <input type="file" id="logo_white_file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" style="flex:1">
+          <button class="btn btn-secondary" type="button" onclick="uploadLogo('white')">Upload White Logo</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color Logo URL (Footer)</label>
+        <input type="text" class="form-input" id="logo_color_url" value="{{ settings.logo_color_url or 'https://solvinex.com/uploads/header-logo.png' }}">
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <input type="file" id="logo_color_file" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" style="flex:1">
+          <button class="btn btn-secondary" type="button" onclick="uploadLogo('color')">Upload Color Logo</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label class="form-label">Primary Color</label>
+          <input type="text" class="form-input" id="brand_primary" value="{{ settings.brand_primary or '#2563eb' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Secondary Color</label>
+          <input type="text" class="form-input" id="brand_secondary" value="{{ settings.brand_secondary or '#0ea5e9' }}">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Brand Font (Google font name)</label>
+        <input type="text" class="form-input" id="brand_font" value="{{ settings.brand_font or 'Inter' }}">
+      </div>
+    </div>
+
+    <div class="section-title">âš¡ Sending Limits</div>
+    <div class="card">
+      <div class="row">
+        <div class="form-group">
+          <label class="form-label">Daily Email Limit</label>
+          <input type="number" class="form-input" id="daily_limit" value="{{ settings.daily_limit }}">
+          <div class="form-hint">Hostinger allows ~200-500/day on shared hosting</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Delay Between Emails (seconds)</label>
+          <input type="number" class="form-input" id="delay_between" value="{{ settings.delay_between }}" min="1" max="60">
+          <div class="form-hint">Min 3s recommended to avoid spam flags</div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Random Delay Jitter (seconds)</label>
+        <input type="number" class="form-input" id="delay_jitter" value="{{ settings.delay_jitter or '4' }}" min="0" max="60">
+        <div class="form-hint">Each email waits as: base delay + random jitter</div>
+      </div>
+    </div>
+
+    <div class="section-title">Auto Daily Sending</div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">Enable Auto Sender</label>
+        <select class="form-select" id="auto_send_enabled">
+          <option value="0" {% if settings.auto_send_enabled!='1' %}selected{% endif %}>OFF</option>
+          <option value="1" {% if settings.auto_send_enabled=='1' %}selected{% endif %}>ON</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Campaign For Auto Send</label>
+        <select class="form-select" id="auto_campaign_id">
+          <option value="">Loading campaigns...</option>
+        </select>
+      </div>
+      <div id="auto-status" class="info-box" style="margin-bottom:0">Loading auto status...</div>
+    </div>
+
+    <div class="section-title">Inbox Auto Sync</div>
+    <div class="card">
+      <div class="row">
+        <div class="form-group">
+          <label class="form-label">Enable Inbox Auto Sync</label>
+          <select class="form-select" id="inbox_auto_sync">
+            <option value="0" {% if settings.inbox_auto_sync!='1' %}selected{% endif %}>OFF</option>
+            <option value="1" {% if settings.inbox_auto_sync=='1' %}selected{% endif %}>ON</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sync Every (minutes)</label>
+          <input type="number" class="form-input" id="inbox_sync_minutes" min="1" max="120" value="{{ settings.inbox_sync_minutes or '5' }}">
+        </div>
+      </div>
+      <div class="form-hint">Inbox dashboard: <a href="/inbox" style="color:var(--accent2)">/inbox</a></div>
+    </div>
+
+    <div class="section-title">OpenCrawl 24x7</div>
+    <div class="card">
+      <div class="row">
+        <div class="form-group">
+          <label class="form-label">Enable OpenCrawl Auto</label>
+          <select class="form-select" id="opencrawl_auto_enabled" onchange="saveOpenCrawlSettings()">
+            <option value="0" {% if settings.opencrawl_auto_enabled!='1' %}selected{% endif %}>OFF</option>
+            <option value="1" {% if settings.opencrawl_auto_enabled=='1' %}selected{% endif %}>ON</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Run Every (minutes)</label>
+          <input type="number" class="form-input" id="opencrawl_interval_minutes" min="10" max="720" value="{{ settings.opencrawl_interval_minutes or '60' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Locations (comma separated)</label>
+        <input type="text" class="form-input" id="opencrawl_locations" value="{{ settings.opencrawl_locations or 'Delhi,Mumbai,Bangalore' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Niches (comma separated)</label>
+        <input type="text" class="form-input" id="opencrawl_niches" value="{{ settings.opencrawl_niches or 'restaurant,clinic,gym,hotel' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Focus Services (comma separated)</label>
+        <input type="text" class="form-input" id="opencrawl_services" value="{{ settings.opencrawl_services or 'Website Development,SEO (Search Engine Optimization)' }}">
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label class="form-label">Pages Per Query</label>
+          <input type="number" class="form-input" id="opencrawl_pages_per_query" min="1" max="3" value="{{ settings.opencrawl_pages_per_query or '1' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Daily New Leads Limit</label>
+          <input type="number" class="form-input" id="opencrawl_daily_new_leads_limit" min="10" max="1000" value="{{ settings.opencrawl_daily_new_leads_limit or '100' }}">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Auto Email New OpenCrawl Leads</label>
+        <select class="form-select" id="opencrawl_auto_email">
+          <option value="1" {% if settings.opencrawl_auto_email!='0' %}selected{% endif %}>ON</option>
+          <option value="0" {% if settings.opencrawl_auto_email=='0' %}selected{% endif %}>OFF</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-secondary" id="opencrawl-run-btn" onclick="runOpenCrawlNow()">Run OpenCrawl Now</button>
+        <button class="btn btn-secondary" id="opencrawl-stop-btn" onclick="stopOpenCrawl()" style="display:none">Stop OpenCrawl</button>
+      </div>
+      <div id="opencrawl-status" class="info-box" style="margin-top:12px;margin-bottom:0">Loading OpenCrawl status...</div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:24px">
+      <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+      <button class="btn btn-secondary" onclick="testEmail()">🔌 Test Connection</button>
+    </div>
+    <div id="test-result" style="margin-top:12px;font-size:13px"></div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg, type='success') {
+  const t=document.getElementById('toast');
+  t.textContent=(type==='success'?'OK: ':'ERR: ')+msg;
+  t.className=`toast ${type} show`;
+  setTimeout(()=>t.className='toast',3500);
+}
+async function uploadLogo(type) {
+  const input = document.getElementById(type === 'white' ? 'logo_white_file' : 'logo_color_file');
+  if (!input || !input.files || !input.files[0]) {
+    showToast('Select a file first', 'error');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('type', type);
+  fd.append('file', input.files[0]);
+  const res = await fetch('/api/settings/upload-logo', { method:'POST', body: fd });
+  const d = await res.json();
+  if (!d.success) {
+    showToast(d.error || 'Upload failed', 'error');
+    return;
+  }
+  const target = document.getElementById(type === 'white' ? 'logo_white_url' : 'logo_color_url');
+  target.value = d.url;
+  showToast(`${type} logo uploaded`);
+}
+async function saveSettings() {
+  const fields = ['smtp_host','smtp_port','smtp_user','smtp_pass','imap_host','imap_port','sender_name','logo_white_url','logo_color_url','brand_primary','brand_secondary','brand_font','daily_limit','delay_between','delay_jitter','auto_campaign_id','inbox_sync_minutes','opencrawl_interval_minutes','opencrawl_locations','opencrawl_niches','opencrawl_services','opencrawl_pages_per_query','opencrawl_daily_new_leads_limit'];
+  const data = {};
+  fields.forEach(f => data[f] = document.getElementById(f).value);
+  data.auto_send_enabled = document.getElementById('auto_send_enabled').value;
+  data.inbox_auto_sync = document.getElementById('inbox_auto_sync').value;
+  data.opencrawl_auto_enabled = document.getElementById('opencrawl_auto_enabled').value;
+  data.opencrawl_auto_email = document.getElementById('opencrawl_auto_email').value;
+  const res = await fetch('/api/settings/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const d = await res.json();
+  if(d.success) {
+    showToast('Settings saved!');
+    loadAutoStatus();
+    loadOpenCrawlStatus();
+  }
+  else showToast('Error saving','error');
+}
+async function saveOpenCrawlSettings(silent=true) {
+  const data = {
+    opencrawl_auto_enabled: document.getElementById('opencrawl_auto_enabled').value,
+    opencrawl_interval_minutes: document.getElementById('opencrawl_interval_minutes').value,
+    opencrawl_locations: document.getElementById('opencrawl_locations').value,
+    opencrawl_niches: document.getElementById('opencrawl_niches').value,
+    opencrawl_services: document.getElementById('opencrawl_services').value,
+    opencrawl_pages_per_query: document.getElementById('opencrawl_pages_per_query').value,
+    opencrawl_daily_new_leads_limit: document.getElementById('opencrawl_daily_new_leads_limit').value,
+    opencrawl_auto_email: document.getElementById('opencrawl_auto_email').value
+  };
+  const res = await fetch('/api/settings/save',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(data)
+  });
+  const d = await res.json();
+  if (d.success) {
+    if (!silent) showToast('OpenCrawl settings saved');
+    loadOpenCrawlStatus();
+  } else if (!silent) {
+    showToast('OpenCrawl save failed','error');
+  }
+}
+async function testEmail() {
+  await saveSettings();
+  const to = prompt('Enter test email address:');
+  if (!to) return;
+  const r = document.getElementById('test-result');
+  r.textContent = '⏳ Testing connection...';
+  r.style.color = 'var(--muted)';
+  const res = await fetch('/api/test-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to})});
+  const d = await res.json();
+  if (d.success) {
+    r.textContent = '✓ ' + d.message;
+    r.style.color = 'var(--accent)';
+  } else {
+    r.textContent = '✗ ' + d.error;
+    r.style.color = 'var(--danger)';
+  }
+}
+
+async function loadCampaignOptions() {
+  const current = "{{ settings.auto_campaign_id or '' }}";
+  const sel = document.getElementById('auto_campaign_id');
+  const res = await fetch('/api/campaigns-list');
+  const camps = await res.json();
+  if (!camps.length) {
+    sel.innerHTML = '<option value="">No campaigns found</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">-- Select campaign --</option>' +
+    camps.map(c => `<option value="${c.id}">${c.name} (${c.service})</option>`).join('');
+  sel.value = current;
+}
+
+async function loadAutoStatus() {
+  const res = await fetch('/api/auto-send/status');
+  const s = await res.json();
+  const el = document.getElementById('auto-status');
+  const mode = s.sender_running ? `Running (${s.sender_mode})` : 'Idle';
+  const err = s.last_error ? `<br><strong style="color:var(--danger)">Last Error:</strong> ${s.last_error}` : '';
+  el.innerHTML = `<strong>Today:</strong> ${s.sent_today}/${s.daily_limit} sent, ${s.remaining_today} remaining<br>
+    <strong>Engine:</strong> ${mode}<br>
+    <strong>Last Auto Run:</strong> ${s.last_run || 'Not yet'} (batch: ${s.last_batch || 0})${err}`;
+}
+
+async function loadOpenCrawlStatus() {
+  const res = await fetch('/api/opencrawl/status');
+  const s = await res.json();
+  const el = document.getElementById('opencrawl-status');
+  const stopBtn = document.getElementById('opencrawl-stop-btn');
+  if (stopBtn) stopBtn.style.display = s.running ? 'inline-flex' : 'none';
+  const err = s.last_error ? `<br><strong style="color:var(--danger)">Last Error:</strong> ${s.last_error}` : '';
+  const runNow = s.running ? ' | <strong>Run State:</strong> Running now...' : '';
+  const progress = s.running ? `<br><strong>Progress:</strong> ${s.queries_done || 0}/${s.queries_total || 0}<br><strong>Current Query:</strong> ${(s.current_query || '').replace(/</g,'&lt;')}` : '';
+  el.innerHTML = `<strong>Engine:</strong> ${s.enabled ? 'ON' : 'OFF'} (every ${s.interval_minutes} min)${runNow}<br>
+    <strong>Today OpenCrawl Leads:</strong> ${s.today_new_leads}/${s.daily_new_leads_limit}<br>
+    <strong>Last Run:</strong> ${s.last_run || 'Not yet'} | Found: ${s.last_found || 0}, Inserted: ${s.last_inserted || 0}, Errors: ${s.last_errors_count || 0}${progress}${err}`;
+}
+
+async function runOpenCrawlNow() {
+  const btn = document.getElementById('opencrawl-run-btn');
+  const oldText = btn ? btn.textContent : 'Run OpenCrawl Now';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Running OpenCrawl...';
+  }
+  const el = document.getElementById('opencrawl-status');
+  if (el) {
+    el.innerHTML = `<strong>Engine:</strong> Running now...<br><strong>Status:</strong> Searching and crawling websites...`;
+  }
+  try {
+    await saveOpenCrawlSettings(true);
+    const res = await fetch('/api/opencrawl/run-now', {method:'POST'});
+    const d = await res.json();
+    if (d.success) {
+      showToast(d.started ? 'OpenCrawl started. Status will update shortly.' : (d.message || 'OpenCrawl already running'));
+    } else {
+      showToast(d.error || 'OpenCrawl failed', 'error');
+    }
+  } catch (e) {
+    showToast('OpenCrawl request failed', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = oldText;
+    }
+    loadOpenCrawlStatus();
+    setTimeout(loadOpenCrawlStatus, 3000);
+    setTimeout(loadOpenCrawlStatus, 8000);
+    setTimeout(loadOpenCrawlStatus, 15000);
+  }
+}
+
+async function stopOpenCrawl() {
+  try {
+    const res = await fetch('/api/opencrawl/stop', {method:'POST'});
+    const d = await res.json();
+    if (d.success) showToast('OpenCrawl stop requested');
+    else showToast(d.error || 'Stop failed', 'error');
+  } catch(e) {
+    showToast('Stop request failed', 'error');
+  }
+  loadOpenCrawlStatus();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadCampaignOptions();
+  loadAutoStatus();
+  loadOpenCrawlStatus();
+  ['opencrawl_interval_minutes','opencrawl_locations','opencrawl_niches','opencrawl_services','opencrawl_pages_per_query','opencrawl_daily_new_leads_limit','opencrawl_auto_email']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => saveOpenCrawlSettings(true));
+    });
+});
+</script>
+</body>
+</html>
+

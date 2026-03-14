@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Social Leads — LeadPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--border:#252535;--accent:#00ff88;--accent2:#0066ff;--danger:#ff3366;--warn:#ffaa00;--text:#e8e8f0;--muted:#666680;--font-mono:'Space Mono',monospace;--font:'DM Sans',sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;}
+.logo{padding:28px 24px 20px;border-bottom:1px solid var(--border);}
+.logo-text{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent);}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:2px;text-transform:uppercase;}
+.nav{flex:1;padding:16px 12px;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:all 0.15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(0,255,136,0.08);color:var(--accent);}
+.nav-item .icon{font-size:18px;width:22px;text-align:center;}
+.sidebar-footer{padding:16px 24px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:10px;color:var(--muted);}
+.main{margin-left:240px;}
+.topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);}
+.topbar-title{font-size:22px;font-weight:700;}
+.btn{padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all 0.15s;display:inline-flex;align-items:center;gap:7px;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#00dd77;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-danger{background:rgba(255,51,102,0.12);color:var(--danger);border:1px solid rgba(255,51,102,0.2);}
+.btn-danger:hover{background:rgba(255,51,102,0.2);}
+.content{padding:28px 32px;}
+
+/* platform tabs */
+.platform-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px;background:var(--surface);}
+.ptab{flex:1;padding:14px 10px;text-align:center;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);transition:all 0.2s;border-right:1px solid var(--border);}
+.ptab:last-child{border-right:none;}
+.ptab:hover{background:var(--surface2);color:var(--text);}
+.ptab.active{background:rgba(0,255,136,0.08);color:var(--accent);}
+.ptab .picon{font-size:18px;display:block;margin-bottom:4px;}
+
+/* scan panel */
+.scan-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;}
+.scan-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;}
+.form-group{margin-bottom:0;}
+label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-weight:600;}
+input,textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;transition:border-color 0.2s;}
+input:focus,textarea:focus{border-color:var(--accent);}
+textarea{resize:vertical;min-height:72px;}
+.cookie-hint{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;}
+.cookie-hint a{color:var(--accent2);text-decoration:none;}
+.li-setup{margin-bottom:16px;display:none;}
+.li-setup.show{display:block;}
+
+/* stats row */
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.stat-value{font-size:24px;font-weight:700;font-family:var(--font-mono);}
+.c-green{color:var(--accent);}
+.c-blue{color:#3b82f6;}
+.c-warn{color:var(--warn);}
+.c-pink{color:#e879f9;}
+.c-muted{color:var(--muted);}
+
+/* filter tabs */
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.filter-tab{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer;transition:all 0.15s;}
+.filter-tab:hover,.filter-tab.active{border-color:var(--accent);color:var(--accent);}
+.search-input{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;outline:none;width:220px;margin-left:auto;}
+.search-input:focus{border-color:var(--accent);}
+
+/* table */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+th{padding:11px 16px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);}
+td{padding:13px 16px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.015);}
+.platform-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.pb-linkedin{background:rgba(10,102,194,0.15);color:#0a66c2;border:1px solid rgba(10,102,194,0.25);}
+.pb-twitter{background:rgba(29,161,242,0.12);color:#1da1f2;border:1px solid rgba(29,161,242,0.2);}
+.pb-facebook{background:rgba(24,119,242,0.12);color:#1877f2;border:1px solid rgba(24,119,242,0.2);}
+.pb-instagram{background:rgba(225,48,108,0.12);color:#e1306c;border:1px solid rgba(225,48,108,0.2);}
+.pb-manual{background:rgba(0,255,136,0.08);color:var(--accent);border:1px solid rgba(0,255,136,0.15);}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+.badge-new{background:rgba(0,102,255,0.12);color:#60a5fa;border:1px solid rgba(0,102,255,0.2);}
+.badge-saved{background:rgba(0,255,136,0.1);color:var(--accent);border:1px solid rgba(0,255,136,0.2);}
+.post-text{max-width:260px;font-size:12px;color:var(--muted);line-height:1.4;}
+.email-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.15);color:var(--accent);padding:2px 8px;border-radius:20px;font-size:11px;font-family:var(--font-mono);}
+.phone-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(0,102,255,0.06);border:1px solid rgba(0,102,255,0.15);color:#93c5fd;padding:2px 8px;border-radius:20px;font-size:11px;font-family:var(--font-mono);}
+.action-btns{display:flex;gap:5px;flex-wrap:wrap;}
+.act-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:11px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.act-btn:hover{border-color:var(--accent);color:var(--accent);}
+.act-btn.danger:hover{border-color:var(--danger);color:var(--danger);}
+.empty-state{padding:60px;text-align:center;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+
+/* manual paste panel */
+.manual-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;}
+.manual-panel h3{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;}
+.manual-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+
+/* scan loader */
+.scanning{display:none;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin-top:12px;}
+.scanning.show{display:flex;}
+.dot-spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:14px 20px;font-size:14px;max-width:320px;transform:translateY(100px);opacity:0;transition:all 0.3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.error{border-color:var(--danger);}
+
+.result-count{font-size:12px;color:var(--muted);margin-left:auto;}
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="logo"><div class="logo-text">⚡ LeadPro</div><div class="logo-sub">Lead Engine v1.0</div></div>
+  <div class="nav">
+    <a href="/" class="nav-item"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/leads" class="nav-item"><span class="icon">👥</span> All Leads</a>
+    <a href="/cold-leads" class="nav-item"><span class="icon">🧊</span> Cold Leads</a>
+    <a href="/gmb-scraper" class="nav-item"><span class="icon">🗺️</span> GMB Scraper</a>
+    <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
+    <a href="/inbox" class="nav-item"><span class="icon">📬</span> Inbox</a>
+    <a href="/social" class="nav-item active"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/calendar" class="nav-item"><span class="icon">📅</span> Calendar</a>
+    <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
+    <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
+  </div>
+  <div class="sidebar-footer">LEADPRO © 2025</div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">🧮 Social Leads</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span class="result-count" id="total-count"></span>
+      <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑️ Clear All</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Platform tabs -->
+    <div class="platform-tabs">
+      <div class="ptab active" onclick="switchPlatform('linkedin',this)" id="ptab-linkedin">
+        <span class="picon">💼</span>LinkedIn
+      </div>
+      <div class="ptab" onclick="switchPlatform('twitter',this)" id="ptab-twitter">
+        <span class="picon">🐦</span>Twitter / X
+      </div>
+      <div class="ptab" onclick="switchPlatform('facebook',this)" id="ptab-facebook">
+        <span class="picon">📘</span>Facebook
+      </div>
+      <div class="ptab" onclick="switchPlatform('instagram',this)" id="ptab-instagram">
+        <span class="picon">📸</span>Instagram
+      </div>
+      <div class="ptab" onclick="switchPlatform('manual',this)" id="ptab-manual">
+        <span class="picon">✍️</span>Manual Paste
+      </div>
+    </div>
+
+    <!-- LinkedIn setup hint -->
+    <div class="li-setup show" id="li-setup-box">
+      <div style="background:rgba(0,102,255,0.06);border:1px solid rgba(0,102,255,0.2);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--muted);margin-bottom:16px;">
+        <strong style="color:#60a5fa;">How to get your LinkedIn cookie:</strong><br>
+        1. Open <strong>linkedin.com</strong> in Chrome &rarr; Login<br>
+        2. Press <strong>F12</strong> &rarr; Application &rarr; Cookies &rarr; <code>linkedin.com</code><br>
+        3. Find <strong>li_at</strong> &rarr; Copy the value &rarr; Paste below<br>
+        <span style="color:#ef4444;font-size:11px;">⚠️ Never share your li_at cookie with anyone. It is your session key.</span>
+      </div>
+    </div>
+
+    <!-- Scan panel -->
+    <div class="scan-panel" id="scan-panel">
+      <div class="li-setup show" id="li-at-row" style="margin-bottom:14px;">
+        <label>LinkedIn Cookie (li_at)</label>
+        <input type="password" id="li-at-input" placeholder="Paste your li_at cookie here..."
+               value="{{ li_at }}" style="font-family:var(--font-mono);font-size:12px;">
+        <div class="cookie-hint">One time setup — we save it for future scans.</div>
+      </div>
+      <div class="scan-row">
+        <div class="form-group">
+          <label>Keywords to Search</label>
+          <input type="text" id="keywords-input" placeholder="need website, looking for SEO, website development..."
+                 value="{{ social_keywords }}">
+        </div>
+        <div>
+          <button class="btn btn-primary" onclick="startScan()" id="scan-btn" style="height:42px;margin-top:22px;">
+            🔍 Scan Now
+          </button>
+        </div>
+      </div>
+      <div class="scanning" id="scan-loader">
+        <div class="dot-spin"></div>
+        <span id="scan-status-text">Scanning... this may take 10-15 seconds</span>
+      </div>
+      <div id="scan-error" style="color:var(--warn);font-size:13px;margin-top:10px;display:none;"></div>
+    </div>
+
+    <!-- Manual paste panel -->
+    <div class="manual-panel" id="manual-panel" style="display:none;">
+      <h3>📋 Manually Paste a Post / Comment</h3>
+      <div class="manual-row">
+        <div class="form-group">
+          <label>Author / Person Name</label>
+          <input type="text" id="m-author" placeholder="John Doe">
+        </div>
+        <div class="form-group">
+          <label>Profile / Post URL</label>
+          <input type="text" id="m-url" placeholder="https://linkedin.com/in/...">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Post / Comment Text (we auto-extract email & phone)</label>
+        <textarea id="m-text" rows="4" placeholder="Paste the post or comment text here...&#10;&#10;If they mentioned their email or phone, we'll extract it automatically."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <select id="m-platform" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-family:var(--font);font-size:13px;">
+          <option value="linkedin">LinkedIn</option>
+          <option value="twitter">Twitter</option>
+          <option value="facebook">Facebook</option>
+          <option value="instagram">Instagram</option>
+          <option value="manual">Other</option>
+        </select>
+        <button class="btn btn-primary" onclick="saveManual()">💾 Extract & Save</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><div class="stat-label">Total Found</div><div class="stat-value c-blue" id="s-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">LinkedIn</div><div class="stat-value c-blue" id="s-linkedin">0</div></div>
+      <div class="stat-card"><div class="stat-label">Twitter</div><div class="stat-value c-pink" id="s-twitter">0</div></div>
+      <div class="stat-card"><div class="stat-label">With Email/Phone</div><div class="stat-value c-green" id="s-contact">0</div></div>
+      <div class="stat-card"><div class="stat-label">Saved as Lead</div><div class="stat-value c-warn" id="s-saved">0</div></div>
+    </div>
+
+    <!-- Filter row -->
+    <div class="filter-row">
+      <button class="filter-tab active" onclick="applyFilter('all',this)">All</button>
+      <button class="filter-tab" onclick="applyFilter('linkedin',this)">💼 LinkedIn</button>
+      <button class="filter-tab" onclick="applyFilter('twitter',this)">🐦 Twitter</button>
+      <button class="filter-tab" onclick="applyFilter('facebook',this)">📘 Facebook</button>
+      <button class="filter-tab" onclick="applyFilter('instagram',this)">📸 Instagram</button>
+      <button class="filter-tab" onclick="applyFilter('has_contact',this)">✅ Has Contact</button>
+      <button class="filter-tab" onclick="applyFilter('new',this)">🔵 New</button>
+      <button class="filter-tab" onclick="applyFilter('saved',this)">💚 Saved</button>
+      <button class="btn btn-primary btn-sm" onclick="saveAllWithContact()" style="margin-left:auto;">
+        💾 Save All with Contact
+      </button>
+      <input type="text" class="search-input" id="search-input" placeholder="Search..." oninput="applySearch()">
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Platform</th>
+            <th>Author</th>
+            <th>Post / Comment</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="leads-tbody">
+          <tr><td colspan="7" class="empty-state">
+            <div class="empty-icon">📱</div>
+            <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px;">No social leads yet</div>
+            <div>Pick a platform above and click Scan Now to find leads.</div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let ALL_LEADS = {{ leads|tojson }};
+let currentFilter = 'all';
+let currentPlatform = 'linkedin';
+let searchQuery = '';
+
+const PLATFORM_COLORS = {
+  linkedin:  {cls:'pb-linkedin',  icon:'💼'},
+  twitter:   {cls:'pb-twitter',   icon:'🐦'},
+  facebook:  {cls:'pb-facebook',  icon:'📘'},
+  instagram: {cls:'pb-instagram', icon:'📸'},
+  manual:    {cls:'pb-manual',    icon:'✍️'},
+};
+
+function switchPlatform(p, el) {
+  currentPlatform = p;
+  document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  const liSetup = document.getElementById('li-setup-box');
+  const liAtRow = document.getElementById('li-at-row');
+  const scanPanel = document.getElementById('scan-panel');
+  const manualPanel = document.getElementById('manual-panel');
+
+  if (p === 'manual') {
+    scanPanel.style.display = 'none';
+    manualPanel.style.display = 'block';
+    liSetup.style.display = 'none';
+  } else {
+    scanPanel.style.display = 'block';
+    manualPanel.style.display = 'none';
+    liSetup.style.display = p === 'linkedin' ? 'block' : 'none';
+    liAtRow.style.display = p === 'linkedin' ? 'block' : 'none';
+  }
+  applyFilter('all', document.querySelector('.filter-tab'));
+}
+
+async function startScan() {
+  const keywords = document.getElementById('keywords-input').value.trim();
+  const liAt = document.getElementById('li-at-input').value.trim();
+  const btn = document.getElementById('scan-btn');
+  const loader = document.getElementById('scan-loader');
+  const errDiv = document.getElementById('scan-error');
+
+  if (!keywords) { showToast('Enter keywords to search.', true); return; }
+  if (currentPlatform === 'linkedin' && !liAt) {
+    showToast('Paste your LinkedIn li_at cookie first.', true); return;
+  }
+
+  btn.disabled = true; btn.textContent = '⏳ Scanning...';
+  loader.classList.add('show');
+  errDiv.style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/social/scan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({platform: currentPlatform, keywords, li_at: liAt})
+    });
+    const data = await resp.json();
+
+    if (data.error) {
+      errDiv.textContent = '⚠️ ' + data.error;
+      errDiv.style.display = 'block';
+    }
+
+    if (data.results && data.results.length > 0) {
+      // Prepend new results to ALL_LEADS
+      ALL_LEADS = [...data.results.map((r,i) => ({...r, id: Date.now()+i, status:'new'})), ...ALL_LEADS];
+      renderTable();
+      calcStats();
+      const autoSaved = data.auto_saved || 0;
+      showToast(`Found ${data.results.length} posts • ${autoSaved} auto-saved to Leads`);
+    } else if (!data.error) {
+      showToast('No posts found for these keywords. Try different keywords.', true);
+    }
+  } catch(e) {
+    errDiv.textContent = '⚠️ Network error: ' + e.message;
+    errDiv.style.display = 'block';
+  }
+
+  btn.disabled = false; btn.textContent = '🔍 Scan Now';
+  loader.classList.remove('show');
+
+  // Reload from server to get DB IDs
+  setTimeout(async () => {
+    const r = await fetch('/api/social/leads');
+    ALL_LEADS = await r.json();
+    renderTable();
+    calcStats();
+  }, 1500);
+}
+
+async function saveManual() {
+  const text = document.getElementById('m-text').value.trim();
+  const author = document.getElementById('m-author').value.trim();
+  const url = document.getElementById('m-url').value.trim();
+  const platform = document.getElementById('m-platform').value;
+  if (!text) { showToast('Paste the post text first.', true); return; }
+
+  const resp = await fetch('/api/social/manual', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({platform, post_text: text, author, profile_url: url})
+  });
+  const data = await resp.json();
+  if (data.success) {
+    showToast(`Saved! Email: ${data.email || 'not found'}, Phone: ${data.phone || 'not found'}${data.auto_saved ? ' • auto-added to Leads' : ''}`);
+    document.getElementById('m-text').value = '';
+    document.getElementById('m-author').value = '';
+    document.getElementById('m-url').value = '';
+    const r2 = await fetch('/api/social/leads');
+    ALL_LEADS = await r2.json();
+    renderTable(); calcStats();
+  } else {
+    showToast(data.error || 'Failed', true);
+  }
+}
+
+async function saveLead(id, author, email, phone, platform, postUrl) {
+  const resp = await fetch('/api/social/save-lead', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({id, author, email, phone, platform, post_url: postUrl})
+  });
+  const data = await resp.json();
+  if (data.success) {
+    const lead = ALL_LEADS.find(l => l.id === id);
+    if (lead) lead.status = 'saved';
+    renderTable(); calcStats();
+    showToast(`Lead saved! Go to Leads page to send email.`);
+  } else {
+    showToast(data.error || 'Failed to save', true);
+  }
+}
+
+async function deleteLead(id) {
+  const resp = await fetch(`/api/social/delete/${id}`, {method:'POST'});
+  const data = await resp.json();
+  if (data.success) {
+    ALL_LEADS = ALL_LEADS.filter(l => l.id !== id);
+    renderTable(); calcStats();
+  }
+}
+
+async function saveAllWithContact() {
+  const eligible = ALL_LEADS.filter(l => (l.email || l.phone) && l.status !== 'saved');
+  if (!eligible.length) { showToast('No new leads with contact info.', true); return; }
+  let count = 0;
+  for (const l of eligible) {
+    const resp = await fetch('/api/social/save-lead', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id: l.id, author: l.author, email: l.email, phone: l.phone, platform: l.platform, post_url: l.post_url})
+    });
+    const d = await resp.json();
+    if (d.success) { l.status = 'saved'; count++; }
+  }
+  renderTable(); calcStats();
+  showToast(`Saved ${count} leads to Leads page!`);
+}
+
+async function clearAll() {
+  if (!confirm('Delete all social leads from this list? (Saved leads in Leads page will remain.)')) return;
+  for (const l of [...ALL_LEADS]) {
+    await fetch(`/api/social/delete/${l.id}`, {method:'POST'});
+  }
+  ALL_LEADS = [];
+  renderTable(); calcStats();
+  showToast('Cleared.');
+}
+
+function copyReplyById(id) {
+  const lead = ALL_LEADS.find(l => l.id === id) || {};
+  const name = (lead.author || '').replace('@','') || 'there';
+  const msg = (lead.reply_draft || '').trim() || `Hi ${name}, we can help with this requirement. If you want, I can share a quick plan and pricing on your email.`;
+  navigator.clipboard.writeText(msg).then(() => showToast('Reply copied to clipboard! Paste it as a comment.'));
+}
+
+function applyFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderTable();
+}
+
+function applySearch() {
+  searchQuery = document.getElementById('search-input').value.toLowerCase();
+  renderTable();
+}
+
+function getFiltered() {
+  let leads = [...ALL_LEADS];
+  if (currentFilter === 'has_contact') leads = leads.filter(l => l.email || l.phone);
+  else if (currentFilter === 'new') leads = leads.filter(l => l.status === 'new');
+  else if (currentFilter === 'saved') leads = leads.filter(l => l.status === 'saved');
+  else if (['linkedin','twitter','facebook','instagram','manual'].includes(currentFilter))
+    leads = leads.filter(l => l.platform === currentFilter);
+  if (searchQuery) {
+    leads = leads.filter(l =>
+      (l.author||'').toLowerCase().includes(searchQuery) ||
+      (l.email||'').toLowerCase().includes(searchQuery) ||
+      (l.phone||'').toLowerCase().includes(searchQuery) ||
+      (l.post_text||'').toLowerCase().includes(searchQuery)
+    );
+  }
+  return leads;
+}
+
+function renderTable() {
+  const leads = getFiltered();
+  const tbody = document.getElementById('leads-tbody');
+  document.getElementById('total-count').textContent = `${leads.length} results`;
+
+  if (!leads.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+      <div class="empty-icon">📱</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px;">No results</div>
+      <div>Scan a platform or change the filter.</div>
+    </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = leads.map(l => {
+    const pb = PLATFORM_COLORS[l.platform] || PLATFORM_COLORS.manual;
+    const statusBadge = l.status === 'saved'
+      ? '<span class="badge badge-saved">saved</span>'
+      : '<span class="badge badge-new">new</span>';
+    const emailChip = l.email ? `<span class="email-chip">✉️ ${esc(l.email)}</span>` : '<span style="color:var(--muted);font-size:11px;">—</span>';
+    const phoneChip = l.phone ? `<span class="phone-chip">📞 ${esc(l.phone)}</span>` : '<span style="color:var(--muted);font-size:11px;">—</span>';
+    const profileLink = l.profile_url
+      ? `<a href="${esc(l.profile_url)}" target="_blank" style="color:var(--accent2);text-decoration:none;font-size:13px;">${esc(l.author||'View Profile')}</a>`
+      : `<span>${esc(l.author||'—')}</span>`;
+    const subtitle = l.subtitle ? `<div style="font-size:11px;color:var(--muted);">${esc(l.subtitle)}</div>` : '';
+    const postLink = l.post_url
+      ? `<a href="${esc(l.post_url)}" target="_blank" style="font-size:10px;color:var(--accent2);text-decoration:none;">View post ↗</a>`
+      : '';
+    const replyDraft = l.reply_draft
+      ? `<div style="margin-top:6px;font-size:11px;color:#8ca0c3;line-height:1.4;">Reply draft: ${(esc(l.reply_draft).slice(0,100))}${l.reply_draft.length>100?'…':''}</div>`
+      : '';
+    const saveBtn = l.status !== 'saved' && (l.email || l.phone)
+      ? `<button class="act-btn" onclick="saveLead(${l.id},'${esc(l.author)}','${esc(l.email)}','${esc(l.phone)}','${esc(l.platform)}','${esc(l.post_url)}')">💾 Save Lead</button>`
+      : '';
+    return `<tr>
+      <td><span class="platform-badge ${pb.cls}">${pb.icon} ${l.platform}</span></td>
+      <td>${profileLink}${subtitle}</td>
+      <td><div class="post-text">${esc((l.post_text||'').slice(0,140))}${(l.post_text||'').length>140?'…':''}</div>${postLink}${replyDraft}</td>
+      <td>${emailChip}</td>
+      <td>${phoneChip}</td>
+      <td>${statusBadge}</td>
+      <td>
+        <div class="action-btns">
+          ${saveBtn}
+          <button class="act-btn" onclick="copyReplyById(${l.id})">💬 Copy Reply</button>
+          <button class="act-btn danger" onclick="deleteLead(${l.id})">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function calcStats() {
+  document.getElementById('s-total').textContent     = ALL_LEADS.length;
+  document.getElementById('s-linkedin').textContent  = ALL_LEADS.filter(l=>l.platform==='linkedin').length;
+  document.getElementById('s-twitter').textContent   = ALL_LEADS.filter(l=>l.platform==='twitter').length;
+  document.getElementById('s-contact').textContent   = ALL_LEADS.filter(l=>l.email||l.phone).length;
+  document.getElementById('s-saved').textContent     = ALL_LEADS.filter(l=>l.status==='saved').length;
+}
+
+function esc(s) {
+  return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+function showToast(msg, isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' error' : '');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// init
+calcStats();
+renderTable();
+</script>
+</body>
+</html>
+
