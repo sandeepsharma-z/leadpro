@@ -1,149 +1,107 @@
-# ⚡ LeadPro - Lead Generation + Bulk Email Engine
+# LeadPro - Lead Generation and Outreach Platform
 
-Apna complete lead generation aur bulk email system — 100% local, 24/7 running.
+LeadPro is a local-first lead generation and outreach system for agencies.  
+It includes lead capture, GMB scraping, campaign management, social lead intake, and bulk email workflows.
 
----
+## Quick Start (5 Minutes)
 
-## 🚀 SETUP (5 Minutes)
+### 1) Install Python
+Download and install Python from: https://www.python.org/downloads/  
+During installation, enable: `Add Python to PATH`.
 
-### Step 1: Python Install Karo
-Download karo: https://www.python.org/downloads/
-✅ Installation mein "Add Python to PATH" checkbox zaroor tick karo
+### 2) Start LeadPro
 
-### Step 2: LeadPro Start Karo
-
-**Windows pe:**
+Windows:
+```bat
+START_WINDOWS.bat
 ```
-START_WINDOWS.bat  ← Double click karo
-```
 
-**Mac/Linux pe:**
+Mac/Linux:
 ```bash
 chmod +x START_MAC_LINUX.sh
 ./START_MAC_LINUX.sh
 ```
 
-### Step 3: Browser Open Karo
-http://localhost:5000
+### 3) Open in Browser
+`http://localhost:5000`
 
----
+## First-Time Setup
 
-## ⚙️ PEHLI BAAR SETUP
+Open `http://localhost:5000/settings` and configure:
+- SMTP Host (example: `smtp.hostinger.com`)
+- SMTP Port (example: `465`)
+- SMTP User Email
+- SMTP Password
+- Sender Name
 
-### Email Configure Karo (Settings Page)
-1. http://localhost:5000/settings pe jao
-2. Fill karo:
-   - **SMTP Host**: smtp.hostinger.com
-   - **SMTP Port**: 465
-   - **Email**: apna@yourdomain.com (Hostinger wala)
-   - **Password**: Hostinger email password
-   - **Sender Name**: Teri Agency ka naam
-3. "Save Settings" click karo
-4. "Test Connection" se verify karo
+Then click:
+1. `Save Settings`
+2. `Test Connection`
 
----
+## Main Features
 
-## 📋 KAISE USE KARO
+- Dashboard and quick lead capture
+- CSV and document lead import
+- GMB scraper workflow
+- Cold leads and all leads management
+- Campaign builder and bulk sending
+- Email logs and inbox tracking
+- Social lead scanner (LinkedIn/X/Facebook/Instagram/manual)
+- Booking calendar and scheduling
 
-### METHOD 1: Manual Lead Add
-1. Dashboard pe "Quick Add Lead" form bharo
-2. Business name, email, phone, service select karo
-3. "Add Lead" click karo
+## Usage Examples
 
-### METHOD 2: CSV Import (Bulk)
-1. Dashboard pe CSV format mein leads paste karo:
-   ```
-   Business Name, Email, Phone, Website, Location, Service
-   Sharma Dhaba, sharma@gmail.com, 9812345678, , Delhi, Website Development
-   ```
-2. "Import Leads" click karo
+### Manual Lead Add
+1. Open Dashboard.
+2. Fill business name, email, phone, and service.
+3. Click `Add Lead`.
 
-### METHOD 3: Auto Scraper
+### CSV Import
+Use format:
+```csv
+Business Name,Email,Phone,Website,Location,Service
+Example Business,owner@example.com,9812345678,,Delhi,Website Development
+```
+
+### Scraper CLI Examples
 ```bash
-# Restaurants in Delhi jo website development chahte hain
 python scraper.py --niche "restaurant" --location "Delhi" --service "Website Development"
-
-# Hotels in Mumbai for SEO
 python scraper.py --niche "hotel" --location "Mumbai" --service "SEO"
-
-# Gyms in Bangalore for branding
 python scraper.py --niche "gym" --location "Bangalore" --service "Branding"
 ```
 
----
+## Campaign Variables
 
-## 📧 EMAIL CAMPAIGNS
+You can use these placeholders in templates:
+- `{business}`
+- `{service}`
+- `{sender_name}`
 
-### Campaign Banao
-1. http://localhost:5000/campaigns pe jao
-2. Service select karo (template auto-load hoga)
-3. Subject aur body customize karo
-4. "Save Campaign" click karo
+## Suggested Production Notes
 
-### Bulk Email Bhejo
-1. http://localhost:5000/leads pe jao
-2. Leads select karo (checkbox use karo)
-3. "Send Emails" click karo
-4. Campaign select karo
-5. "Start Sending" — ho gaya! 🚀
+1. Respect your SMTP provider sending limits.
+2. Keep delays between emails to reduce spam risk.
+3. Scraping sources may rate-limit; add retry and pacing.
+4. Back up your database regularly.
 
-### Variables jo use kar sakte ho
-- `{business}` — Business ka naam
-- `{service}` — Service naam
-- `{sender_name}` — Teri agency ka naam
+Database path:
+`data/leads.db`
 
----
+## Project Structure
 
-## 📊 SERVICES INCLUDED
-- ✅ Website Development
-- ✅ SEO (Search Engine Optimization)  
-- ✅ Logo Design
-- ✅ Social Media Management
-- ✅ App Development
-- ✅ E-commerce Solutions
-- ✅ UI/UX Design
-- ✅ Branding & Graphic Design
-- ✅ CMS Development
-- ✅ Website Maintenance
-
----
-
-## 🔄 24/7 RUN KARNE KE LIYE
-
-### Windows (Task Scheduler):
-1. Task Scheduler open karo
-2. "Create Basic Task" → "When computer starts"
-3. Action: Start a program → python → Arguments: `C:\path\to\leadpro\app.py`
-
-### Background mein run karo (Windows):
-```batch
-start /min python app.py
-```
-
----
-
-## ⚠️ IMPORTANT NOTES
-
-1. **Hostinger Limits**: Shared hosting pe ~200-500 emails/day allowed
-2. **Delay**: Minimum 3 seconds between emails (spam avoid karne ke liye)
-3. **Scraper**: Google kabhi kabhi block kar sakta hai, VPN use karo ya slow karo
-4. **Database**: `data/leads.db` mein sab data save hota hai — backup lena mat bhoolna!
-
----
-
-## 🗂️ FILES
-```
+```text
 leadpro/
-├── app.py              ← Main server (ye hi run karo)
-├── scraper.py          ← Lead scraper
-├── requirements.txt    ← Dependencies
-├── START_WINDOWS.bat   ← Windows startup
-├── START_MAC_LINUX.sh  ← Mac/Linux startup
-├── data/
-│   └── leads.db        ← Database (auto-create hoga)
-└── templates/          ← HTML pages
+|-- app.py
+|-- scraper.py
+|-- requirements.txt
+|-- START_WINDOWS.bat
+|-- START_MAC_LINUX.sh
+|-- data/
+|   |-- leads.db
+|-- templates/
+|-- gmb_scraper/
 ```
 
----
+## Version
 
-Made with ❤️ for Indian agencies | LeadPro v1.0
+LeadPro v1.0
