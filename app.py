@@ -888,15 +888,20 @@ def _send_emails_worker(lead_ids, campaign_id, mode='manual'):
         conn.close()
         return
     subject_tmpl, body_tmpl, campaign_service = camp
-    # Resume-safe mode: skip leads already sent for this campaign or already marked emailed.
+    # Manual send should allow re-sending to explicitly selected leads.
+    # Auto modes remain resume-safe to avoid repeated sends.
     eligible_ids = []
     for lid in lead_ids:
-        c.execute('''SELECT l.id
-            FROM leads l
-            LEFT JOIN email_logs el
-              ON el.lead_id=l.id AND el.campaign_id=? AND el.status='sent'
-            WHERE l.id=? AND l.status!='emailed' AND el.id IS NULL''',
-            (campaign_id, lid))
+        if mode == 'manual':
+            c.execute("SELECT id FROM leads WHERE id=? AND email IS NOT NULL AND TRIM(email)<>''", (lid,))
+        else:
+            c.execute('''SELECT l.id
+                FROM leads l
+                LEFT JOIN email_logs el
+                  ON el.lead_id=l.id AND el.campaign_id=? AND el.status='sent'
+                WHERE l.id=? AND l.status!='emailed' AND el.id IS NULL
+                  AND l.email IS NOT NULL AND TRIM(l.email)<>''',
+                (campaign_id, lid))
         if c.fetchone():
             eligible_ids.append(lid)
     sending_status['total'] = len(eligible_ids)
@@ -924,6 +929,9 @@ def _send_emails_worker(lead_ids, campaign_id, mode='manual'):
         if not lead:
             continue
         email, biz_name, service = lead
+        if not email or not str(email).strip():
+            sending_status['failed'] += 1
+            continue
         service_final = (campaign_service or '').strip() or (service or '').strip()
         sending_status['current'] = email
         subject = _personalize_text(subject_tmpl, biz_name, service_final, s.get('sender_name', ''))
