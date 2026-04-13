@@ -1,0 +1,926 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Drafts - LeadPro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f; --surface:#111118; --surface2:#1a1a24; --border:#252535;
+  --accent:#00ff88; --wa:#25d366; --text:#e8e8f0; --muted:#666680;
+  --font:'DM Sans',sans-serif; --mono:'Space Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+.sidebar{position:fixed;left:0;top:0;width:240px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.logo{padding:26px 22px;border-bottom:1px solid var(--border)}
+.logo-text{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent)}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:1.8px;text-transform:uppercase}
+.nav{flex:1;padding:14px 10px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px;margin-bottom:3px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(37,211,102,0.12);color:var(--wa)}
+.main{margin-left:240px;min-height:100vh}
+.topbar{padding:18px 28px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;justify-content:space-between;align-items:center}
+.title{font-size:22px;font-weight:700}
+.content{padding:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
+.label{display:block;font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.6px}
+textarea{width:100%;min-height:230px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6}
+select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;margin-bottom:10px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.btn{padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-weight:600}
+.btn.primary{background:var(--wa);border-color:var(--wa);color:#05250f}
+.btn:hover{filter:brightness(1.06)}
+table{width:100%;border-collapse:collapse;margin-top:16px}
+th,td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;font-size:13px}
+th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px}
+.mono{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin-top:10px}
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-text">LeadPro</div>
+    <div class="logo-sub">Lead Engine v1.0</div>
+  </div>
+  <div class="nav">
+    <a href="/" class="nav-item">Dashboard</a>
+    <a href="/leads" class="nav-item">All Leads</a>
+    <a href="/cold-leads" class="nav-item">Cold Leads</a>
+    <a href="/gmb-scraper" class="nav-item">GMB Scraper</a>
+    <a href="/whatsapp" class="nav-item active">WhatsApp</a>
+    <a href="/campaigns" class="nav-item">Campaigns</a>
+    <a href="/social" class="nav-item">LinkedIn/Social</a>
+    <a href="/social?platform=reddit" class="nav-item">Reddit Leads</a>
+    <a href="/social?platform=jobboard" class="nav-item">Job Boards</a>
+    <a href="/social?platform=directory" class="nav-item">Directories</a>
+    <a href="/logs" class="nav-item">Email Logs</a>
+    <a href="/settings" class="nav-item">Settings</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="title">WhatsApp Drafts</div>
+    <a class="btn" href="/gmb-scraper">Back to GMB</a>
+  </div>
+  <div class="content">
+    <div class="card">
+      <label class="label">Template Type</label>
+      <select id="template-select" onchange="applyTemplateSelection()"></select>
+
+      <label class="label">Message Template ([Business Name] auto-fill)</label>
+      <textarea id="msg-template"></textarea>
+
+      <div class="toolbar">
+        <button class="btn primary" onclick="openAllDrafts()">Open All Drafts</button>
+        <button class="btn" onclick="reloadLeads()">Reload Leads</button>
+      </div>
+      <div class="hint" id="auto-hint">Auto-selected template based on your last GMB service.</div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="label" style="margin:0">Leads with Phone</div>
+        <div id="lead-count" class="hint" style="margin:0">0 leads</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Business</th>
+            <th>Phone</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="lead-body">
+          <tr><td colspan="4" class="hint">No leads loaded yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+let leads = [];
+
+const TEMPLATE_PRESETS = {
+  apartments_hotel: `Hi 👋 I came across [Business Name] — your property has a really inviting look and feel ✨
+
+I noticed you’re not fully showcasing your rooms and availability online through a proper website, which can really help you attract more direct bookings and reduce dependency on third-party platforms.
+
+We’re currently creating a few free homepage demos for selected hotels and stays this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  restaurant_cafe_bakery: `Hi 👋 I came across [Business Name] — your food business has a really warm and welcoming vibe 🍽️
+
+I noticed you’re not fully showcasing your menu and specialties through a proper website, which can really help you attract more orders, party bookings, and walk-ins from nearby customers.
+
+We’re currently creating a few free homepage demos for selected restaurants and cafes this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  salon_spa_beauty: `Hi 👋 I came across [Business Name] — your salon has a really clean and modern vibe ✨
+
+I noticed you’re not fully showcasing your services online through a proper website, which can really help you attract more clients and increase bookings.
+
+We’re currently creating a few free homepage demos for selected beauty salons this month. Would you like me to design a quick sample for you? 🙂`,
+
+  dental_medical_clinic: `Hi 👋 I came across [Business Name] — your clinic looks really professional and well-reviewed 🏥
+
+I noticed you’re not fully showcasing your treatments and expertise through a proper website, which can really help patients find and trust you before booking an appointment.
+
+We’re currently creating a few free homepage demos for selected clinics this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  real_estate_property: `Hi 👋 I came across [Business Name] — your real estate profile looks impressive 🏡
+
+I noticed you’re not fully showcasing your listings and services through a dedicated website, which can really help you attract higher-quality buyer and seller leads.
+
+We’re currently creating a few free homepage demos for selected real estate agencies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  legal_finance_professional: `Hi 👋 I came across [Business Name] — your firm looks highly credible and experienced 💼
+
+I noticed you’re not fully showcasing your expertise through a proper website, which can really help potential clients find and trust you before reaching out for a consultation.
+
+We’re currently creating a few free homepage demos for selected professional service firms this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  home_services: `Hi 👋 I came across [Business Name] — your service business has a great local reputation 🔧
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help you generate more calls and enquiries from nearby customers looking online.
+
+We’re currently creating a few free homepage demos for selected home service businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  automotive_services: `Hi 👋 I came across [Business Name] — your auto service centre looks really reliable and well-rated 🚗
+
+I noticed you’re not fully showcasing your services and expertise through a proper website, which can really help you attract more service bookings and build stronger customer trust.
+
+We’re currently creating a few free homepage demos for selected auto service businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  education_coaching: `Hi 👋 I came across [Business Name] — your coaching centre looks really focused and results-driven 🎓
+
+I noticed you’re not fully showcasing your courses and outcomes through a proper website, which can really help parents and students find you and enrol with more confidence.
+
+We’re currently creating a few free homepage demos for selected education and coaching centres this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  retail_ecommerce: `Hi 👋 I came across [Business Name] — your store has a really great product range and feel 🛍️
+
+I noticed you’re not fully showcasing your products through a proper website, which can really help you reach more customers online and drive daily enquiries and sales.
+
+We’re currently creating a few free homepage demos for selected retail stores this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  travel_tourism: `Hi 👋 I came across [Business Name] — your travel packages look really exciting and well-curated ✈️
+
+I noticed you’re not fully showcasing your tours through a proper website, which can really help you attract more enquiries and bookings from travellers searching online.
+
+We’re currently creating a few free homepage demos for selected travel businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  events_media: `Hi 👋 I came across [Business Name] — your work looks really creative and high-quality 🎬
+
+I noticed you’re not fully showcasing your portfolio through a proper website, which can really help potential clients discover your work and reach out for bookings.
+
+We’re currently creating a few free homepage demos for selected event and media businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  pet_services: `Hi 👋 I came across [Business Name] — your pet care services look really caring and professional 🐾
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help pet owners find and trust you before booking.
+
+We’re currently creating a few free homepage demos for selected pet service businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  seo: `Hi 👋 I came across [Business Name] — your business has a really strong foundation online 📈
+
+I noticed there’s a good opportunity to improve your search rankings and attract more high-intent customers through focused SEO improvements.
+
+We’re currently putting together a few free SEO audit reports for selected businesses this month. Would you like me to prepare one for [Business Name]? 🙂`,
+
+  social: `Hi 👋 I came across [Business Name] — your brand has a really nice presence and personality 📱
+
+I noticed there’s a great opportunity to grow your reach and get more inbound enquiries through a stronger social media strategy.
+
+We’re currently creating a few free social media growth plans for selected businesses this month. Would you like me to put one together for [Business Name]? 🙂`,
+
+  design_branding: `Hi 👋 I came across [Business Name] — your business has a solid base with real potential for a premium brand upgrade 🎨
+
+I noticed your current visual identity could be elevated to better reflect the quality of your work and attract higher-value clients.
+
+We’re currently creating a few free branding concept samples for selected businesses this month. Would you like me to design one for [Business Name]? 🙂`,
+
+  generic: `Hi 👋 I came across [Business Name] — your business looks great and has a lot of potential online ✨
+
+I noticed you’re not fully showcasing what you offer through a proper website, which can really help you attract more customers and grow your enquiries.
+
+We’re currently creating a few free homepage demos for selected businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  appliance_repair: `Hi 👋 I came across [Business Name] — your appliance repair service looks really reliable and well-rated 🔌
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help local customers find and call you when they need urgent repairs.
+
+We’re currently creating a few free homepage demos for selected repair businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  electrician: `Hi 👋 I came across [Business Name] — your electrical services look really professional and trustworthy ⚡
+
+I noticed you’re not fully showcasing your work through a proper website, which can really help homeowners and businesses find you when they need an electrician fast.
+
+We’re currently creating a few free homepage demos for selected trade businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  plumber: `Hi 👋 I came across [Business Name] — your plumbing services look really solid and well-reviewed 🔧
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help more local customers discover and contact you.
+
+We’re currently creating a few free homepage demos for selected trade businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  painter_tiler: `Hi 👋 I came across [Business Name] — your finishing work looks really clean and professional 🎨
+
+I noticed you’re not fully showcasing your portfolio through a proper website, which can really help new clients see your quality before hiring you.
+
+We’re currently creating a few free homepage demos for selected trade businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  lawn_garden: `Hi 👋 I came across [Business Name] — your landscaping and garden work looks really neat and well-done 🌿
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help local homeowners and businesses find you easily.
+
+We’re currently creating a few free homepage demos for selected landscaping businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  pest_control: `Hi 👋 I came across [Business Name] — your pest control service looks really thorough and trusted 🐛
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help worried homeowners find and book you quickly.
+
+We’re currently creating a few free homepage demos for selected pest control businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  barber_shop: `Hi 👋 I came across [Business Name] — your barber shop looks really sharp and well set up ✂️
+
+I noticed you’re not fully showcasing your cuts and services through a proper website, which can really help you attract more regular clients and walk-ins.
+
+We’re currently creating a few free homepage demos for selected barber shops this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  nail_salon: `Hi 👋 I came across [Business Name] — your nail salon looks really stylish and inviting 💅
+
+I noticed you’re not fully showcasing your nail art and services through a proper website, which can really help you attract more bookings and new clients.
+
+We’re currently creating a few free homepage demos for selected nail salons this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  massage_therapy: `Hi 👋 I came across [Business Name] — your massage and wellness services look really relaxing and professional 🧘
+
+I noticed you’re not fully showcasing your treatments through a proper website, which can really help new clients find and book you online.
+
+We’re currently creating a few free homepage demos for selected wellness businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  personal_trainer: `Hi 👋 I came across [Business Name] — your fitness coaching looks really motivating and results-driven 💪
+
+I noticed you’re not fully showcasing your programs through a proper website, which can really help you attract more serious clients and grow your client base.
+
+We’re currently creating a few free homepage demos for selected fitness coaches this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  physiotherapy: `Hi 👋 I came across [Business Name] — your physiotherapy practice looks really professional and caring 🏥
+
+I noticed you’re not fully showcasing your treatments and expertise through a proper website, which can really help patients find and trust you before booking.
+
+We’re currently creating a few free homepage demos for selected physiotherapy clinics this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  catering_service: `Hi 👋 I came across [Business Name] — your catering service looks really impressive and well-presented 🍱
+
+I noticed you’re not fully showcasing your menus and event packages through a proper website, which can really help you win more corporate and private event bookings.
+
+We’re currently creating a few free homepage demos for selected catering businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  food_truck: `Hi 👋 I came across [Business Name] — your food truck has a really cool concept and vibe 🚚
+
+I noticed you’re not fully showcasing your menu and locations through a proper website, which can really help more hungry customers track you down and order from you.
+
+We’re currently creating a few free homepage demos for selected food trucks this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  butcher: `Hi 👋 I came across [Business Name] — your butcher shop looks really premium and well-stocked 🥩
+
+I noticed you’re not fully showcasing your cuts and specials through a proper website, which can really help local customers choose you over the supermarket.
+
+We’re currently creating a few free homepage demos for selected butcher shops this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  tattoo_studio: `Hi 👋 I came across [Business Name] — your tattoo work looks incredibly detailed and artistic 🎨
+
+I noticed you’re not fully showcasing your portfolio through a proper website, which can really help new clients discover your style and book with confidence.
+
+We’re currently creating a few free homepage demos for selected tattoo studios this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  photographer: `Hi 👋 I came across [Business Name] — your photography work looks absolutely stunning 📸
+
+I noticed you’re not fully showcasing your portfolio through a proper website, which can really help more clients find your work and reach out for bookings.
+
+We’re currently creating a few free portfolio demos for selected photographers this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  videographer: `Hi 👋 I came across [Business Name] — your video production work looks really cinematic and high quality 🎥
+
+I noticed you’re not fully showcasing your showreel through a proper website, which can really help potential clients see your style and book you with confidence.
+
+We’re currently creating a few free portfolio demos for selected videographers this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  general_clinic: `Hi 👋 I came across [Business Name] — your GP clinic looks really approachable and well-reviewed 🩺
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help patients find and book you before visiting in person.
+
+We’re currently creating a few free homepage demos for selected clinics this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  paediatric_clinic: `Hi 👋 I came across [Business Name] — your children’s clinic looks really caring and professional 👶
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help parents find and trust you when looking for the right doctor for their child.
+
+We’re currently creating a few free homepage demos for selected paediatric clinics this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  dermatology_clinic: `Hi 👋 I came across [Business Name] — your dermatology clinic looks really professional and results-focused ✨
+
+I noticed you’re not fully showcasing your treatments through a proper website, which can really help new patients find you and book a skin consultation.
+
+We’re currently creating a few free homepage demos for selected dermatology clinics this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  diagnostics_center: `Hi 👋 I came across [Business Name] — your diagnostics centre looks really well-equipped and trusted 🔬
+
+I noticed you’re not fully showcasing your test services through a proper website, which can really help patients find you and understand what tests you offer.
+
+We’re currently creating a few free homepage demos for selected diagnostics centres this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  optical_store: `Hi 👋 I came across [Business Name] — your optical store looks really stylish with a great frame selection 👓
+
+I noticed you’re not fully showcasing your eyewear and services through a proper website, which can really help more local customers discover and visit you.
+
+We’re currently creating a few free homepage demos for selected optical stores this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  pharmacy: `Hi 👋 I came across [Business Name] — your pharmacy looks really well-stocked and trusted by the community 💊
+
+I noticed you’re not fully showcasing your products and services through a proper website, which can really help customers find and rely on you more easily.
+
+We’re currently creating a few free homepage demos for selected pharmacies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  veterinary_clinic: `Hi 👋 I came across [Business Name] — your vet clinic looks really caring and professional 🐶
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help pet owners find and trust you before bringing their animals in.
+
+We’re currently creating a few free homepage demos for selected vet clinics this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  law_firm: `Hi 👋 I came across [Business Name] — your law firm looks really experienced and authoritative ⚖️
+
+I noticed you’re not fully showcasing your legal expertise through a proper website, which can really help potential clients find you and feel confident reaching out.
+
+We’re currently creating a few free homepage demos for selected law firms this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  immigration_lawyer: `Hi 👋 I came across [Business Name] — your immigration consultancy looks really knowledgeable and trusted 📋
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help people navigating visa and immigration processes find and trust you.
+
+We’re currently creating a few free homepage demos for selected immigration consultancies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  family_lawyer: `Hi 👋 I came across [Business Name] — your family law practice looks really compassionate and professional 👨‍👩‍👧
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help families in need find the right legal support at a difficult time.
+
+We’re currently creating a few free homepage demos for selected family law firms this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  tax_consultant: `Hi 👋 I came across [Business Name] — your tax consultancy looks really thorough and reliable 📊
+
+I noticed you’re not fully showcasing your expertise through a proper website, which can really help individuals and businesses find the right tax advisor during filing season.
+
+We’re currently creating a few free homepage demos for selected tax consultancies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  accountant: `Hi 👋 I came across [Business Name] — your accounting practice looks really professional and detail-oriented 📒
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help businesses find and trust you as their financial partner.
+
+We’re currently creating a few free homepage demos for selected accounting firms this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  financial_advisor: `Hi 👋 I came across [Business Name] — your financial advisory looks really credible and well-established 💰
+
+I noticed you’re not fully showcasing your expertise through a proper website, which can really help new clients find and trust you before their first consultation.
+
+We’re currently creating a few free homepage demos for selected financial advisors this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  insurance_agent: `Hi 👋 I came across [Business Name] — your insurance services look really comprehensive and client-focused 🛡️
+
+I noticed you’re not fully showcasing your policies and services through a proper website, which can really help more people find the right coverage through you.
+
+We’re currently creating a few free homepage demos for selected insurance agents this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  mortgage_broker: `Hi 👋 I came across [Business Name] — your mortgage brokerage looks really knowledgeable and trustworthy 🏦
+
+I noticed you’re not fully showcasing your loan options through a proper website, which can really help homebuyers and investors find and contact you with confidence.
+
+We’re currently creating a few free homepage demos for selected mortgage brokers this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  recruitment_agency: `Hi 👋 I came across [Business Name] — your recruitment agency looks really active and well-connected 👔
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help both employers and job seekers discover and reach out to you.
+
+We’re currently creating a few free homepage demos for selected recruitment agencies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  property_management: `Hi 👋 I came across [Business Name] — your property management services look really organised and professional 🏢
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help property owners find a reliable manager they can trust.
+
+We’re currently creating a few free homepage demos for selected property management firms this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  home_inspection: `Hi 👋 I came across [Business Name] — your home inspection service looks really thorough and detail-oriented 🔍
+
+I noticed you’re not fully showcasing your reports and services through a proper website, which can really help homebuyers and sellers find you at the right moment.
+
+We’re currently creating a few free homepage demos for selected inspection services this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  interior_designer: `Hi 👋 I came across [Business Name] — your interior design work looks really elegant and well-curated 🛋️
+
+I noticed you’re not fully showcasing your portfolio through a proper website, which can really help new clients visualise your style and reach out for projects.
+
+We’re currently creating a few free portfolio demo sites for selected interior designers this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  renovation_contractor: `Hi 👋 I came across [Business Name] — your renovation work looks really impressive and high quality 🏗️
+
+I noticed you’re not fully showcasing your before/after projects through a proper website, which can really help homeowners choose you with confidence.
+
+We’re currently creating a few free homepage demos for selected renovation contractors this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  florist: `Hi 👋 I came across [Business Name] — your floral arrangements look absolutely beautiful and creative 🌸
+
+I noticed you’re not fully showcasing your bouquets and event florals through a proper website, which can really help more people discover and order from you.
+
+We’re currently creating a few free homepage demos for selected florists this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  clothing_boutique: `Hi 👋 I came across [Business Name] — your clothing boutique looks really stylish and well-curated 👗
+
+I noticed you’re not fully showcasing your collection through a proper website, which can really help fashion-conscious shoppers discover your store online.
+
+We’re currently creating a few free homepage demos for selected clothing boutiques this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  toy_store: `Hi 👋 I came across [Business Name] — your toy store looks really fun and well-stocked 🧸
+
+I noticed you’re not fully showcasing your products through a proper website, which can really help parents and gift-buyers find exactly what they’re looking for.
+
+We’re currently creating a few free homepage demos for selected toy stores this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  bookstore: `Hi 👋 I came across [Business Name] — your bookstore looks like a real treasure for book lovers 📚
+
+I noticed you’re not fully showcasing your collection through a proper website, which can really help readers discover your store and check what’s in stock.
+
+We’re currently creating a few free homepage demos for selected independent bookstores this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  hardware_store: `Hi 👋 I came across [Business Name] — your hardware store looks really well-stocked and trusted by locals 🔩
+
+I noticed you’re not fully showcasing your product range through a proper website, which can really help tradespeople and homeowners find and choose you for their next project.
+
+We’re currently creating a few free homepage demos for selected hardware stores this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  manufacturing: `Hi 👋 I came across [Business Name] — your manufacturing operation looks really well-established and capable 🏭
+
+I noticed you’re not fully showcasing your production capabilities through a proper website, which can really help you attract larger clients and business partnerships.
+
+We’re currently creating a few free homepage demos for selected manufacturers this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  printing_service: `Hi 👋 I came across [Business Name] — your printing services look really sharp and high quality 🖨️
+
+I noticed you’re not fully showcasing your print range through a proper website, which can really help businesses find and order from you much more easily.
+
+We’re currently creating a few free homepage demos for selected print shops this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  wholesale_distributor: `Hi 👋 I came across [Business Name] — your wholesale distribution looks really well-organised and reliable 📦
+
+I noticed you’re not fully showcasing your product catalogue through a proper website, which can really help retailers and resellers discover and partner with you.
+
+We’re currently creating a few free homepage demos for selected wholesale distributors this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  logistics_company: `Hi 👋 I came across [Business Name] — your logistics service looks really efficient and well-run 🚛
+
+I noticed you’re not fully showcasing your delivery capabilities through a proper website, which can really help businesses find a reliable transport partner.
+
+We’re currently creating a few free homepage demos for selected logistics companies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  car_rental: `Hi 👋 I came across [Business Name] — your car rental fleet looks really well-maintained and competitive 🚙
+
+I noticed you’re not fully showcasing your vehicles and rates through a proper website, which can really help travellers and locals book directly with you.
+
+We’re currently creating a few free homepage demos for selected car rental companies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  visa_consultant: `Hi 👋 I came across [Business Name] — your visa consultancy looks really knowledgeable and trusted by clients 🌍
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help applicants find the right guidance during a stressful visa process.
+
+We’re currently creating a few free homepage demos for selected visa consultancies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  wedding_planner: `Hi 👋 I came across [Business Name] — your wedding planning work looks absolutely magical and perfectly styled 💍
+
+I noticed you’re not fully showcasing your portfolio through a proper website, which can really help couples in the planning stage discover and fall in love with your work.
+
+We’re currently creating a few free homepage demos for selected wedding planners this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  it_services: `Hi 👋 I came across [Business Name] — your IT services look really capable and trusted by local businesses 💻
+
+I noticed you’re not fully showcasing your solutions through a proper website, which can really help businesses find reliable tech support and services.
+
+We’re currently creating a few free homepage demos for selected IT companies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  content_creator: `Hi 👋 I came across [Business Name] — your content and creative work looks really engaging and well-produced 🎙️
+
+I noticed you’re not fully showcasing your work through a proper website, which can really help brands and collaborators discover and reach out to you.
+
+We’re currently creating a few free portfolio demos for selected content creators this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  nursery_garden: `Hi 👋 I came across [Business Name] — your plant nursery looks really lush and well-maintained 🌱
+
+I noticed you’re not fully showcasing your plant collection through a proper website, which can really help gardening enthusiasts find and visit you.
+
+We’re currently creating a few free homepage demos for selected nurseries this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  organic_store: `Hi 👋 I came across [Business Name] — your organic store looks really fresh and health-conscious 🥦
+
+I noticed you’re not fully showcasing your products through a proper website, which can really help health-focused shoppers discover and order from you.
+
+We’re currently creating a few free homepage demos for selected organic stores this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  security_services: `Hi 👋 I came across [Business Name] — your security services look really professional and reliable 🔐
+
+I noticed you’re not fully showcasing your security solutions through a proper website, which can really help businesses and homeowners find the right protection provider.
+
+We’re currently creating a few free homepage demos for selected security companies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  fire_safety: `Hi 👋 I came across [Business Name] — your fire safety services look really thorough and compliant 🔥
+
+I noticed you’re not fully showcasing your safety solutions through a proper website, which can really help businesses meet compliance requirements and find you faster.
+
+We’re currently creating a few free homepage demos for selected fire safety companies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  hvac_cleaning: `Hi 👋 I came across [Business Name] — your HVAC and cleaning services look really professional and well-reviewed 🌬️
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help homeowners and businesses find and book you for regular maintenance.
+
+We’re currently creating a few free homepage demos for selected HVAC and cleaning companies this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  driving_school: `Hi 👋 I came across [Business Name] — your driving school looks really well-structured and learner-friendly 🚗
+
+I noticed you’re not fully showcasing your lessons and pass rates through a proper website, which can really help new learners choose you with confidence.
+
+We’re currently creating a few free homepage demos for selected driving schools this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  music_school: `Hi 👋 I came across [Business Name] — your music school looks really vibrant and talent-focused 🎵
+
+I noticed you’re not fully showcasing your courses and instructors through a proper website, which can really help students and parents find the right music programme.
+
+We’re currently creating a few free homepage demos for selected music schools this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  upholstery: `Hi 👋 I came across [Business Name] — your upholstery work looks really skilled and beautifully finished 🪑
+
+I noticed you’re not fully showcasing your craft through a proper website, which can really help homeowners and businesses find you for restoration and custom work.
+
+We’re currently creating a few free homepage demos for selected upholstery businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  alterations: `Hi 👋 I came across [Business Name] — your tailoring and alterations look really precise and professional 🧵
+
+I noticed you’re not fully showcasing your services through a proper website, which can really help more local customers find you for their clothing needs.
+
+We’re currently creating a few free homepage demos for selected tailoring businesses this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  jeweller: `Hi 👋 I came across [Business Name] — your jewellery collection looks absolutely stunning and elegant 💎
+
+I noticed you’re not fully showcasing your pieces through a proper website, which can really help more customers discover your work and make purchases online.
+
+We’re currently creating a few free homepage demos for selected jewellers this month. Would you like me to design a quick sample for [Business Name]? 🙂`,
+
+  farm_equipment: `Hi 👋 I came across [Business Name] — your farm equipment supply looks really comprehensive and dependable 🚜
+
+I noticed you’re not fully showcasing your product range through a proper website, which can really help farmers and agricultural businesses find the right equipment.
+
+We’re currently creating a few free homepage demos for selected farm equipment dealers this month. Would you like me to design a quick sample for [Business Name]? 🙂`
+};
+
+const TEMPLATE_LABELS = {
+  apartments_hotel: 'Apartments / Hotel',
+  restaurant_cafe_bakery: 'Restaurant / Cafe / Bakery',
+  salon_spa_beauty: 'Salon / Spa / Beauty',
+  dental_medical_clinic: 'Dental / Medical Clinic',
+  real_estate_property: 'Real Estate / Property',
+  legal_finance_professional: 'Legal / Finance / Professional',
+  home_services: 'Home Services',
+  automotive_services: 'Automotive Services',
+  education_coaching: 'Education / Coaching',
+  retail_ecommerce: 'Retail / E-commerce',
+  travel_tourism: 'Travel / Tourism',
+  events_media: 'Events / Media',
+  pet_services: 'Pet Services',
+  seo: 'SEO / Marketing',
+  social: 'Social Media',
+  design_branding: 'Design / Branding',
+  appliance_repair: 'Appliance Repair',
+  electrician: 'Electrician',
+  plumber: 'Plumber',
+  painter_tiler: 'Painter / Tiler',
+  lawn_garden: 'Lawn & Landscaping',
+  pest_control: 'Pest Control',
+  barber_shop: 'Barber Shop',
+  nail_salon: 'Nail Salon',
+  massage_therapy: 'Massage Therapy',
+  personal_trainer: 'Personal Trainer / Gym',
+  physiotherapy: 'Physiotherapy',
+  catering_service: 'Catering Service',
+  food_truck: 'Food Truck',
+  butcher: 'Butcher',
+  tattoo_studio: 'Tattoo Studio',
+  photographer: 'Photographer',
+  videographer: 'Videographer',
+  general_clinic: 'General Clinic / GP',
+  paediatric_clinic: 'Paediatric Clinic',
+  dermatology_clinic: 'Dermatology Clinic',
+  diagnostics_center: 'Diagnostics Center',
+  optical_store: 'Optical Store',
+  pharmacy: 'Pharmacy',
+  veterinary_clinic: 'Veterinary Clinic',
+  law_firm: 'Law Firm',
+  immigration_lawyer: 'Immigration Lawyer',
+  family_lawyer: 'Family Lawyer',
+  tax_consultant: 'Tax Consultant',
+  accountant: 'Accountant',
+  financial_advisor: 'Financial Advisor',
+  insurance_agent: 'Insurance Agent',
+  mortgage_broker: 'Mortgage Broker',
+  recruitment_agency: 'Recruitment Agency',
+  property_management: 'Property Management',
+  home_inspection: 'Home Inspection',
+  interior_designer: 'Interior Designer',
+  renovation_contractor: 'Renovation Contractor',
+  florist: 'Florist',
+  clothing_boutique: 'Clothing Boutique',
+  toy_store: 'Toy Store',
+  bookstore: 'Bookstore',
+  hardware_store: 'Hardware Store',
+  manufacturing: 'Manufacturing',
+  printing_service: 'Printing Service',
+  wholesale_distributor: 'Wholesale Distributor',
+  logistics_company: 'Logistics Company',
+  car_rental: 'Car Rental',
+  visa_consultant: 'Visa Consultant',
+  wedding_planner: 'Wedding Planner',
+  it_services: 'IT Services',
+  content_creator: 'Content Creator / Podcast',
+  nursery_garden: 'Plant Nursery',
+  organic_store: 'Organic Store',
+  security_services: 'Security Services',
+  fire_safety: 'Fire Safety',
+  hvac_cleaning: 'HVAC / Commercial Cleaning',
+  driving_school: 'Driving School',
+  music_school: 'Music School',
+  upholstery: 'Upholstery',
+  alterations: 'Tailoring / Alterations',
+  jeweller: 'Jeweller',
+  farm_equipment: 'Farm Equipment Dealer',
+  generic: 'Generic'
+};
+
+function normalizePhone(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  let cleaned = s.replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('+')) cleaned = '+' + cleaned.slice(1).replace(/[^\d]/g, '');
+  if (!cleaned.startsWith('+')) cleaned = cleaned.replace(/[^\d]/g, '');
+  return cleaned;
+}
+
+function onlyDigits(phone) {
+  return String(phone || '').replace(/[^\d]/g, '');
+}
+
+function buildMessage(lead) {
+  const t = document.getElementById('msg-template').value || '';
+  return t.replace(/\[Business Name\]/g, lead.name || 'Business');
+}
+
+function serviceToTemplateKey(service) {
+  const s = String(service || '').toLowerCase();
+  if (s.includes('seo') || s.includes('marketing') || s.includes('google ads') || s.includes('ppc') || s.includes('content')) return 'seo';
+  if (s.includes('social media')) return 'social';
+  if (s.includes('logo') || s.includes('branding') || s.includes('design') || s.includes('ui/ux')) return 'design_branding';
+  return 'generic';
+}
+
+function nicheToTemplateKey(niche) {
+  const n = String(niche || '').toLowerCase();
+  if (!n) return '';
+  // Specific matches first (more precise)
+  if (/(appliance repair|refrigeration repair|fridge repair|washing machine|ac repair)/.test(n)) return 'appliance_repair';
+  if (/(electrician|electrical service|electrical contractor)/.test(n)) return 'electrician';
+  if (/(plumber|plumbing)/.test(n)) return 'plumber';
+  if (/(painter|tiler|tiling|painting service)/.test(n)) return 'painter_tiler';
+  if (/(lawn mow|landscap|irrigation|gardening service|garden maintenance)/.test(n)) return 'lawn_garden';
+  if (/(pest control|pest service|termite|fumigation)/.test(n)) return 'pest_control';
+  if (/(barber|barbershop|barber shop|men's hair|mens hair)/.test(n)) return 'barber_shop';
+  if (/(nail salon|nail art|nail studio|manicure|pedicure)/.test(n)) return 'nail_salon';
+  if (/(massage therapy|massage centre|massage studio|day spa|reflexology)/.test(n)) return 'massage_therapy';
+  if (/(personal trainer|fitness coach|personal training|gym|fitness studio|crossfit)/.test(n)) return 'personal_trainer';
+  if (/(physiotherapy|physio|rehab clinic|physical therapy|osteopath)/.test(n)) return 'physiotherapy';
+  if (/(catering service|catering company|event catering|corporate catering)/.test(n)) return 'catering_service';
+  if (/(food truck|mobile food|street food)/.test(n)) return 'food_truck';
+  if (/(butcher|meat shop|meat store|deli)/.test(n)) return 'butcher';
+  if (/(tattoo|tattoo studio|tattoo artist|body piercing|piercing)/.test(n)) return 'tattoo_studio';
+  if (/(photographer|photography studio|photo studio|wedding photo)/.test(n)) return 'photographer';
+  if (/(videographer|video production|video studio|filmmaker|cinematog)/.test(n)) return 'videographer';
+  if (/(paediatric|pediatric|children.*clinic|child.*doctor|kids.*clinic)/.test(n)) return 'paediatric_clinic';
+  if (/(dermatology|skin clinic|skin care clinic|dermatolog)/.test(n)) return 'dermatology_clinic';
+  if (/(diagnostics|pathology|diagnostic center|lab test|blood test|medical lab)/.test(n)) return 'diagnostics_center';
+  if (/(optical|optometrist|eyewear|spectacle|glasses store|contact lens)/.test(n)) return 'optical_store';
+  if (/(pharmacy|chemist|medical store|drug store|dispensary)/.test(n)) return 'pharmacy';
+  if (/(veterinary|vet clinic|animal hospital|pet hospital|animal clinic)/.test(n)) return 'veterinary_clinic';
+  if (/(general clinic|gp clinic|medical clinic|family clinic|doctor clinic|general practice)/.test(n)) return 'general_clinic';
+  if (/(chiropractor|chiropractic)/.test(n)) return 'dental_medical_clinic';
+  if (/(dentist|dental clinic|dental surgery|orthodontist|dental)/.test(n)) return 'dental_medical_clinic';
+  if (/(immigration lawyer|immigration consultant|visa lawyer|migration agent)/.test(n)) return 'immigration_lawyer';
+  if (/(family lawyer|family law|divorce lawyer|family solicitor)/.test(n)) return 'family_lawyer';
+  if (/(tax consultant|tax advisor|tax service|tax accountant|income tax)/.test(n)) return 'tax_consultant';
+  if (/(accountant|accounting firm|bookkeeping|cpa firm|chartered account)/.test(n)) return 'accountant';
+  if (/(financial advisor|wealth management|investment advisor|financial planner)/.test(n)) return 'financial_advisor';
+  if (/(insurance agent|insurance broker|insurance service|life insurance|general insurance)/.test(n)) return 'insurance_agent';
+  if (/(mortgage broker|home loan|mortgage advisor|loan broker)/.test(n)) return 'mortgage_broker';
+  if (/(recruitment agency|staffing agency|job agency|employment agency|hr agency)/.test(n)) return 'recruitment_agency';
+  if (/(law firm|solicitor|attorney|notary|legal service|compliance|conveyancer)/.test(n)) return 'law_firm';
+  if (/(property management|strata|body corporate|property manager)/.test(n)) return 'property_management';
+  if (/(home inspection|building inspection|pest inspection|property inspection)/.test(n)) return 'home_inspection';
+  if (/(interior designer|interior design|home staging|interior decorator)/.test(n)) return 'interior_designer';
+  if (/(renovation|builder|construction|remodel|contractor|building company)/.test(n)) return 'renovation_contractor';
+  if (/(real estate|property agent|estate agent|real estate broker|letting agency)/.test(n)) return 'real_estate_property';
+  if (/(florist|flower shop|flower delivery|floral)/.test(n)) return 'florist';
+  if (/(clothing boutique|fashion boutique|clothes shop|fashion store|apparel)/.test(n)) return 'clothing_boutique';
+  if (/(toy store|toy shop|kids store|children.*store)/.test(n)) return 'toy_store';
+  if (/(bookstore|book shop|book store|library shop)/.test(n)) return 'bookstore';
+  if (/(hardware store|hardware shop|building supplies|tool store)/.test(n)) return 'hardware_store';
+  if (/(manufacturing|metal fabrication|fabrication|factory|industrial supplier|packaging supplier|wholesale distributor)/.test(n)) return 'manufacturing';
+  if (/(printing service|print shop|signage|banner printing|print company)/.test(n)) return 'printing_service';
+  if (/(wholesale|distributor|bulk supplier)/.test(n)) return 'wholesale_distributor';
+  if (/(logistics|freight|courier|transport company|delivery company|trucking)/.test(n)) return 'logistics_company';
+  if (/(car rental|vehicle rental|hire car|car hire)/.test(n)) return 'car_rental';
+  if (/(visa consultant|visa service|immigration service|visa agent)/.test(n)) return 'visa_consultant';
+  if (/(wedding planner|wedding coordinator|wedding organiser|wedding event)/.test(n)) return 'wedding_planner';
+  if (/(it service|tech support|computer repair|network service|cyber|software company|web development|managed it)/.test(n)) return 'it_services';
+  if (/(content creator|podcast studio|podcast|youtube|social media creator|influencer|video creator)/.test(n)) return 'content_creator';
+  if (/(nursery|plant nursery|garden centre|garden shop)/.test(n)) return 'nursery_garden';
+  if (/(organic store|health food|organic shop|organic food|natural food)/.test(n)) return 'organic_store';
+  if (/(farm equipment|agriculture equipment|farming supplies|agricultural)/.test(n)) return 'farm_equipment';
+  if (/(security guard|security service|security company|cctv installation|alarm system|access control)/.test(n)) return 'security_services';
+  if (/(fire safety|fire protection|fire equipment|fire suppression)/.test(n)) return 'fire_safety';
+  if (/(hvac|air conditioning|commercial cleaning|duct cleaning|water duct|aircon service|ventilation)/.test(n)) return 'hvac_cleaning';
+  if (/(driving school|driving lesson|driving instructor|learner driver)/.test(n)) return 'driving_school';
+  if (/(music school|music lesson|music academy|guitar lesson|piano lesson|vocal)/.test(n)) return 'music_school';
+  if (/(upholstery|reupholster|furniture restoration|couch repair)/.test(n)) return 'upholstery';
+  if (/(alteration|tailoring|tailor|seamstress|dressmaker|garment repair)/.test(n)) return 'alterations';
+  if (/(jeweller|jewellery store|jewelry store|goldsmith|watch store|diamond)/.test(n)) return 'jeweller';
+  // Broader fallbacks
+  if (/(apartment|hotel|hostel|guest house|accommodation|resort|stay|motel|lodge|b&b|bed and breakfast)/.test(n)) return 'apartments_hotel';
+  if (/(restaurant|cafe|bakery|cake|coffee shop|eatery|diner|pizzeria|sushi)/.test(n)) return 'restaurant_cafe_bakery';
+  if (/(salon|spa|beauty|nail|skincare|hair|wax|threading|lash|brow)/.test(n)) return 'salon_spa_beauty';
+  if (/(clinic|medical|health|doctor|hospital|physio)/.test(n)) return 'dental_medical_clinic';
+  if (/(handyman|cleaning service|janitorial|locksmith|repair|maintenance)/.test(n)) return 'home_services';
+  if (/(auto|car|truck|mechanic|detailing|towing|automotive|tyre|battery)/.test(n)) return 'automotive_services';
+  if (/(school|coaching|tutoring|academy|yoga|martial|dance|training)/.test(n)) return 'education_coaching';
+  if (/(store|shop|retail|gift|furniture|ecommerce|e-commerce)/.test(n)) return 'retail_ecommerce';
+  if (/(travel|tour|tourism)/.test(n)) return 'travel_tourism';
+  if (/(event|dj|media|entertainment|photography|production)/.test(n)) return 'events_media';
+  if (/(pet|dog|cat|animal|grooming|boarding)/.test(n)) return 'pet_services';
+  if (/(seo|marketing|google ads|ppc|digital marketing|advertising agency)/.test(n)) return 'seo';
+  if (/(social media|instagram|facebook marketing)/.test(n)) return 'social';
+  if (/(logo|branding|graphic design|ui\/ux|web design)/.test(n)) return 'design_branding';
+  return '';
+}
+
+function resolveAutoTemplate() {
+  const lastNiche = localStorage.getItem('leadpro_last_niche') || '';
+  const lastService = localStorage.getItem('leadpro_last_service_needed') || '';
+  const nicheKey = nicheToTemplateKey(lastNiche);
+  const serviceKey = serviceToTemplateKey(lastService);
+  const key = nicheKey || serviceKey || 'generic';
+  return { key, lastNiche, lastService, by: nicheKey ? 'niche' : (serviceKey ? 'service' : 'default') };
+}
+
+function applyTemplateByKey(key) {
+  const sel = document.getElementById('template-select');
+  sel.value = key;
+  document.getElementById('msg-template').value = TEMPLATE_PRESETS[key] || TEMPLATE_PRESETS.generic;
+}
+
+function persistTemplateChoice() {
+  const k = document.getElementById('template-select').value;
+  try { localStorage.setItem('leadpro_last_whatsapp_template_key', k); } catch(_) {}
+}
+
+function applyTemplateSelection() {
+  const key = document.getElementById('template-select').value;
+  applyTemplateByKey(key);
+  persistTemplateChoice();
+}
+
+function autoSelectTemplateByLastService() {
+  const remembered = localStorage.getItem('leadpro_last_whatsapp_template_key') || '';
+  if (remembered && TEMPLATE_PRESETS[remembered]) {
+    applyTemplateByKey(remembered);
+    document.getElementById('auto-hint').textContent = `Using your last selected template: ${TEMPLATE_LABELS[remembered]}`;
+    return;
+  }
+  const auto = resolveAutoTemplate();
+  applyTemplateByKey(auto.key);
+  if (auto.by === 'niche') {
+    document.getElementById('auto-hint').textContent = `Auto-selected by niche: ${auto.lastNiche} -> ${TEMPLATE_LABELS[auto.key]}`;
+  } else if (auto.by === 'service') {
+    document.getElementById('auto-hint').textContent = `Auto-selected by service: ${auto.lastService} -> ${TEMPLATE_LABELS[auto.key]}`;
+  } else {
+    document.getElementById('auto-hint').textContent = `Auto-selected: ${TEMPLATE_LABELS[auto.key]}`;
+  }
+}
+
+function loadTemplateOptions() {
+  const sel = document.getElementById('template-select');
+  sel.innerHTML = Object.keys(TEMPLATE_PRESETS)
+    .map(k => `<option value="${k}">${TEMPLATE_LABELS[k] || k}</option>`)
+    .join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderLeads() {
+  const body = document.getElementById('lead-body');
+  document.getElementById('lead-count').textContent = `${leads.length} leads`;
+  if (!leads.length) {
+    body.innerHTML = '<tr><td colspan="4" class="hint">No phone leads found. Run scraper first.</td></tr>';
+    return;
+  }
+  body.innerHTML = leads.map((l, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><strong>${escapeHtml(l.name || 'Business')}</strong></td>
+      <td class="mono">${escapeHtml(l.phone || '-')}</td>
+      <td><button class="btn" onclick="openOne(${i})">Open Draft</button></td>
+    </tr>
+  `).join('');
+}
+
+function reloadLeads() {
+  try {
+    const rawFiltered = localStorage.getItem('leadpro_latest_scraped_leads') || '[]';
+    const rawAll = localStorage.getItem('leadpro_latest_scraped_leads_raw') || '[]';
+    let arr = JSON.parse(rawFiltered);
+    if (!Array.isArray(arr) || !arr.length) arr = JSON.parse(rawAll);
+    leads = (Array.isArray(arr) ? arr : [])
+      .filter(x => x && x.phone)
+      .map(x => ({ name: x.name || x.business_name || 'Business', phone: x.phone }));
+  } catch (_) {
+    leads = [];
+  }
+  renderLeads();
+}
+
+async function openViaBackend(lead) {
+  const number = onlyDigits(normalizePhone(lead.phone));
+  const message = buildMessage(lead);
+  const webUrl = `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+  try {
+    const res = await fetch('/api/whatsapp/open', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: number, message })
+    });
+    const d = await res.json();
+    if (!d.success) {
+      window.open(webUrl, '_blank');
+    }
+  } catch (_) {
+    window.open(webUrl, '_blank');
+  }
+}
+
+function openOne(idx) {
+  const lead = leads[idx];
+  if (!lead) return;
+  openViaBackend(lead);
+}
+
+async function openAllDrafts() {
+  if (!leads.length) return;
+  const items = leads.map((l) => ({
+    phone: onlyDigits(normalizePhone(l.phone)),
+    message: buildMessage(l),
+  })).filter(x => x.phone);
+  if (!items.length) return;
+  try {
+    const res = await fetch('/api/whatsapp/open-bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, delay_ms: 1000 })
+    });
+    const d = await res.json();
+    document.getElementById('auto-hint').textContent = `Open All: ${d.opened || 0}/${d.total || items.length} drafts opened${d.failed ? `, failed: ${d.failed}` : ''}`;
+  } catch (_) {
+    // Fallback to browser windows if bulk API fails
+    for (let i = 0; i < items.length; i++) {
+      const webUrl = `https://wa.me/${items[i].phone}?text=${encodeURIComponent(items[i].message)}`;
+      window.open(webUrl, '_blank');
+      // small gap reduces popup blocker chance in some browsers
+      await new Promise(r => setTimeout(r, 900));
+    }
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadTemplateOptions();
+  autoSelectTemplateByLastService();
+  reloadLeads();
+});
+</script>
+</body>
+</html>

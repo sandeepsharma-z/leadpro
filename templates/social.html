@@ -83,6 +83,9 @@ tr:hover td{background:rgba(255,255,255,0.015);}
 .pb-twitter{background:rgba(29,161,242,0.12);color:#1da1f2;border:1px solid rgba(29,161,242,0.2);}
 .pb-facebook{background:rgba(24,119,242,0.12);color:#1877f2;border:1px solid rgba(24,119,242,0.2);}
 .pb-instagram{background:rgba(225,48,108,0.12);color:#e1306c;border:1px solid rgba(225,48,108,0.2);}
+.pb-reddit{background:rgba(255,87,34,0.12);color:#ff5722;border:1px solid rgba(255,87,34,0.25);}
+.pb-jobboard{background:rgba(59,130,246,0.12);color:#60a5fa;border:1px solid rgba(59,130,246,0.25);}
+.pb-directory{background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.25);}
 .pb-manual{background:rgba(0,255,136,0.08);color:var(--accent);border:1px solid rgba(0,255,136,0.15);}
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
 .badge-new{background:rgba(0,102,255,0.12);color:#60a5fa;border:1px solid rgba(0,102,255,0.2);}
@@ -107,6 +110,8 @@ tr:hover td{background:rgba(255,255,255,0.015);}
 .scanning.show{display:flex;}
 .dot-spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:spin 0.8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+.kw-chip{padding:3px 10px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);font-size:11px;cursor:pointer;transition:all 0.15s;font-family:var(--font);}
+.kw-chip:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,255,136,0.06);}
 
 .toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:14px 20px;font-size:14px;max-width:320px;transform:translateY(100px);opacity:0;transition:all 0.3s;}
 .toast.show{transform:translateY(0);opacity:1;}
@@ -127,6 +132,9 @@ tr:hover td{background:rgba(255,255,255,0.015);}
     <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
     <a href="/inbox" class="nav-item"><span class="icon">📬</span> Inbox</a>
     <a href="/social" class="nav-item active"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/social?platform=reddit" class="nav-item"><span class="icon">👽</span> Reddit Leads</a>
+    <a href="/social?platform=jobboard" class="nav-item"><span class="icon">💼</span> Job Boards</a>
+    <a href="/social?platform=directory" class="nav-item"><span class="icon">📒</span> Directories</a>
     <a href="/calendar" class="nav-item"><span class="icon">📅</span> Calendar</a>
     <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
     <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
@@ -159,47 +167,250 @@ tr:hover td{background:rgba(255,255,255,0.015);}
       <div class="ptab" onclick="switchPlatform('instagram',this)" id="ptab-instagram">
         <span class="picon">📸</span>Instagram
       </div>
+      <div class="ptab" onclick="switchPlatform('reddit',this)" id="ptab-reddit">
+        <span class="picon">👽</span>Reddit
+      </div>
+      <div class="ptab" onclick="switchPlatform('jobboard',this)" id="ptab-jobboard">
+        <span class="picon">💼</span>Job Boards
+      </div>
+      <div class="ptab" onclick="switchPlatform('directory',this)" id="ptab-directory">
+        <span class="picon">📒</span>Directories
+      </div>
       <div class="ptab" onclick="switchPlatform('manual',this)" id="ptab-manual">
         <span class="picon">✍️</span>Manual Paste
       </div>
     </div>
 
-    <!-- LinkedIn setup hint -->
-    <div class="li-setup show" id="li-setup-box">
-      <div style="background:rgba(0,102,255,0.06);border:1px solid rgba(0,102,255,0.2);border-radius:10px;padding:14px 18px;font-size:13px;color:var(--muted);margin-bottom:16px;">
-        <strong style="color:#60a5fa;">How to get your LinkedIn cookie:</strong><br>
-        1. Open <strong>linkedin.com</strong> in Chrome &rarr; Login<br>
-        2. Press <strong>F12</strong> &rarr; Application &rarr; Cookies &rarr; <code>linkedin.com</code><br>
-        3. Find <strong>li_at</strong> &rarr; Copy the value &rarr; Paste below<br>
-        <span style="color:#ef4444;font-size:11px;">⚠️ Never share your li_at cookie with anyone. It is your session key.</span>
+    <!-- LinkedIn credentials panel (shown when linkedin tab active) -->
+    <div id="li-cred-panel" style="display:block;">
+
+      <!-- Cookie setup guide -->
+      <div style="background:rgba(0,102,255,0.06);border:1px solid rgba(0,102,255,0.2);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;color:var(--muted);">
+        <strong style="color:#60a5fa;font-size:14px;">🍪 How to connect LinkedIn (30 seconds, one-time)</strong><br><br>
+        <span style="color:var(--text);">1.</span> Chrome mein <strong style="color:#fff;">linkedin.com</strong> kholo — already logged in hona chahiye<br>
+        <span style="color:var(--text);">2.</span> <strong style="color:#fff;">F12</strong> dabaao → <strong style="color:#fff;">Application</strong> tab → left mein <strong style="color:#fff;">Cookies</strong> → <strong style="color:#fff;">https://www.linkedin.com</strong><br>
+        <span style="color:var(--text);">3.</span> List mein <strong style="color:#60a5fa;">li_at</strong> dhundho → uska <strong style="color:#fff;">Value</strong> column copy karo<br>
+        <span style="color:var(--text);">4.</span> Neeche paste karo → <strong style="color:#00ff88;">Connect</strong> click karo ✅<br>
+        <span style="color:#ef4444;font-size:11px;margin-top:4px;display:block;">⚠️ li_at sirf apne computer pe save hota hai — kabhi kisi ko share mat karna.</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0;">
+        <!-- Credentials login card -->
+        <div class="scan-panel" style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:14px;font-weight:700;color:var(--text);">💼 LinkedIn Login</span>
+            <span id="li-status-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(255,51,102,0.1);color:var(--danger);border:1px solid rgba(255,51,102,0.2);">⚪ Not connected</span>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Email</label>
+            <input type="email" id="li-email" placeholder="your@linkedin.com" value="{{ li_email or '' }}">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Password</label>
+            <input type="password" id="li-password" placeholder="LinkedIn password">
+          </div>
+          <button class="btn btn-primary" onclick="liLogin()" id="li-login-btn" style="width:100%;margin-bottom:10px;">
+            🔐 Login to LinkedIn
+          </button>
+          <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Ya li_at cookie se connect karo (alternative):</div>
+            <div style="display:flex;gap:8px;">
+              <input type="password" id="li-at-input" placeholder="li_at cookie value..."
+                     value="{{ li_at or '' }}" style="font-size:11px;font-family:var(--font-mono);flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text);outline:none;">
+              <button class="btn btn-secondary btn-sm" onclick="liLoginCookie()">🍪 Use</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-monitor card -->
+        <div class="scan-panel" style="margin-bottom:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;">⚙️ Auto Monitor Settings</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:13px;color:var(--muted);">Auto-monitor LinkedIn</span>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="li-auto-monitor" onchange="saveLiSettings()" style="width:16px;height:16px;">
+              <span id="li-monitor-label" style="font-size:12px;color:var(--muted);">Off</span>
+            </label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <span style="font-size:13px;color:var(--muted);">Auto-comment on posts</span>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="li-auto-comment" onchange="saveLiSettings()" style="width:16px;height:16px;">
+              <span id="li-comment-label" style="font-size:12px;color:var(--muted);">Off</span>
+            </label>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Scan Interval (minutes)</label>
+            <input type="number" id="li-interval" value="30" min="15" max="120" onchange="saveLiSettings()">
+          </div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.5;">
+            When auto-comment is ON, LeadPro will automatically comment on matching posts every scan. Rate-limited to avoid bans.
+          </div>
+        </div>
+      </div>
+
+      <!-- Comment template -->
+      <div class="scan-panel" style="margin-top:16px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;">💬 Comment Template <span style="font-size:11px;color:var(--muted);font-weight:400;">Variables: {name}, {service}</span></div>
+        <textarea id="li-comment-tpl" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;resize:vertical;" placeholder="Hi {name}! 👋 Noticed you might need help with {service}...">{{ li_comment_tpl or '' }}</textarea>
+        <button class="btn btn-secondary btn-sm" onclick="saveLiSettings()" style="margin-top:8px;">💾 Save Template</button>
+      </div>
+
+      <!-- Keywords + scan row -->
+      <div class="scan-panel" style="margin-top:16px;">
+        <div class="scan-row">
+          <div class="form-group" style="flex:1;">
+            <label>Keywords to Search on LinkedIn</label>
+            <input type="text" id="keywords-input" placeholder="need website, looking for SEO..."
+                   value="{{ social_keywords }}" style="width:100%;">
+            <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+              <span style="font-size:11px;color:var(--muted);margin-right:4px;align-self:center;">Quick add:</span>
+              {% for kw in [
+                'need website','website banana hai','looking for web developer',
+                'need SEO','need SEO services','need digital marketing',
+                'need logo design','need app development','ecommerce website chahiye',
+                'wordpress developer','shopify developer','website redesign',
+                'social media marketing','online marketing','need UI UX designer',
+                'website not ranking','improve online presence','digital agency chahiye'
+              ] %}
+              <button class="kw-chip" onclick="addKw('{{ kw }}')">+ {{ kw }}</button>
+              {% endfor %}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:22px;flex-shrink:0;">
+            <button class="btn btn-secondary" onclick="startScan(false)" id="scan-btn">
+              🔍 Scan Only
+            </button>
+            <button class="btn btn-primary" onclick="startScan(true)" id="scan-comment-btn">
+              💬 Scan + Comment
+            </button>
+          </div>
+        </div>
+        <div class="scanning" id="scan-loader">
+          <div class="dot-spin"></div>
+          <span id="scan-status-text">Scanning LinkedIn... 15-30 seconds</span>
+        </div>
+        <div id="scan-error" style="color:var(--warn);font-size:13px;margin-top:10px;display:none;"></div>
       </div>
     </div>
 
-    <!-- Scan panel -->
-    <div class="scan-panel" id="scan-panel">
-      <div class="li-setup show" id="li-at-row" style="margin-bottom:14px;">
-        <label>LinkedIn Cookie (li_at)</label>
-        <input type="password" id="li-at-input" placeholder="Paste your li_at cookie here..."
-               value="{{ li_at }}" style="font-family:var(--font-mono);font-size:12px;">
-        <div class="cookie-hint">One time setup — we save it for future scans.</div>
+    <!-- ── Instagram DM Automation Panel ────────────────────────────────── -->
+    <div id="ig-panel" style="display:none;">
+
+      <div style="background:rgba(225,48,108,0.07);border:1px solid rgba(225,48,108,0.25);border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;color:var(--muted);">
+        <strong style="color:#e1306c;font-size:14px;">📸 Instagram DM Automation</strong><br><br>
+        This tool searches Instagram profiles in any niche, filters out those <strong style="color:#fff;">without a website in their bio</strong>, and automatically sends them a DM. Keep sessions under 10–15 DMs/day to stay safe.
+        <span style="color:#ef4444;font-size:11px;display:block;margin-top:6px;">⚠️ Sending too many DMs too fast can temporarily restrict your Instagram account. Always use a realistic delay.</span>
       </div>
-      <div class="scan-row">
-        <div class="form-group">
-          <label>Keywords to Search</label>
-          <input type="text" id="keywords-input" placeholder="need website, looking for SEO, website development..."
-                 value="{{ social_keywords }}">
-        </div>
-        <div>
-          <button class="btn btn-primary" onclick="startScan()" id="scan-btn" style="height:42px;margin-top:22px;">
-            🔍 Scan Now
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <!-- Login Card -->
+        <div class="scan-panel" style="margin-bottom:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <span style="font-size:14px;font-weight:700;color:var(--text);">🔐 Instagram Login</span>
+            <span id="ig-status-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(255,51,102,0.1);color:var(--danger);border:1px solid rgba(255,51,102,0.2);">⚪ Not connected</span>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Instagram Email / Username</label>
+            <input type="text" id="ig-email" placeholder="your@email.com or @username">
+          </div>
+          <div class="form-group" style="margin-bottom:12px;">
+            <label>Password</label>
+            <input type="password" id="ig-password" placeholder="Instagram password">
+          </div>
+          <button class="btn btn-primary" onclick="igLogin()" id="ig-login-btn" style="width:100%;">
+            📸 Login to Instagram
           </button>
+          <button class="btn" onclick="igDisconnect()" id="ig-disconnect-btn" style="width:100%;display:none;background:rgba(255,51,102,0.1);color:var(--danger);border:1px solid rgba(255,51,102,0.3);">
+            🔌 Disconnect Instagram
+          </button>
+          <div id="ig-login-status-txt" style="font-size:12px;color:var(--muted);margin-top:8px;min-height:18px;"></div>
+        </div>
+
+        <!-- DM Settings Card -->
+        <div class="scan-panel" style="margin-bottom:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;">⚙️ DM Campaign Settings</div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Max DMs Per Session</label>
+            <input type="number" id="ig-max-dms" value="10" min="1" max="30"
+                   style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;">
+          </div>
+          <div class="form-group" style="margin-bottom:10px;">
+            <label>Delay Between DMs (seconds)</label>
+            <input type="number" id="ig-delay" value="35" min="15" max="120"
+                   style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;">
+          </div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:4px;">
+            Recommended: max 10 DMs per session, 35+ second delay.<br>
+            Only profiles <strong style="color:var(--text);">without a website</strong> in their bio are targeted.
+          </div>
         </div>
       </div>
-      <div class="scanning" id="scan-loader">
-        <div class="dot-spin"></div>
-        <span id="scan-status-text">Scanning... this may take 10-15 seconds</span>
+
+      <!-- Niche + Message Template -->
+      <div class="scan-panel" style="margin-bottom:16px;">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Niche / Hashtag to Search (e.g. bakery, fitness, salon, restaurant)</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input type="text" id="ig-niche" placeholder="bakery" style="flex:1;">
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <span style="font-size:11px;color:var(--muted);margin-right:4px;align-self:center;">Quick:</span>
+            {% for n in ['bakery','salon','restaurant','fitness','clinic','photography','realestate','boutique','dentist','catering','gym','fashiondesigner','interiordesign','jewelryshop','tutoring'] %}
+            <button class="kw-chip" onclick="document.getElementById('ig-niche').value='{{ n }}'">{{ n }}</button>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>DM Message Template <span style="font-size:11px;color:var(--muted);font-weight:400;">Variables: {name}, {username}, {niche}</span></label>
+          <textarea id="ig-message" rows="6" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;resize:vertical;">Hi {name}! 👋
+
+I came across your profile and love what you're doing in the {niche} space!
+
+I noticed you don't have a website yet — that's actually a big opportunity. A professional website can bring you 3–5x more clients on autopilot through Google searches.
+
+We build fast, stunning websites starting from just $299. The first consultation is 100% free — no pressure at all.
+
+Would you be open to a quick 10-minute call this week? 🚀</textarea>
+        </div>
       </div>
-      <div id="scan-error" style="color:var(--warn);font-size:13px;margin-top:10px;display:none;"></div>
+
+      <!-- Start Button + Status -->
+      <div class="scan-panel">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="startIgDm()" id="ig-dm-btn" style="background:linear-gradient(135deg,#e1306c,#fd5949);">
+            📤 Start DM Campaign
+          </button>
+          <div id="ig-dm-progress" style="display:none;align-items:center;gap:10px;">
+            <div class="dot-spin"></div>
+            <span id="ig-dm-status-txt" style="font-size:13px;color:var(--muted);">Starting...</span>
+            <span id="ig-dm-count" style="font-size:13px;font-weight:700;color:#e1306c;"></span>
+          </div>
+        </div>
+        <div id="ig-dm-error" style="color:var(--warn);font-size:13px;margin-top:10px;display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Non-LinkedIn/Instagram scan panel (Twitter, FB) -->
+    <div id="other-scan-panel" style="display:none;">
+      <div class="scan-panel">
+        <div class="scan-row">
+          <div class="form-group">
+            <label>Keywords to Search</label>
+            <input type="text" id="keywords-input-other" placeholder="need website, looking for SEO...">
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="startOtherScan()" id="other-scan-btn" style="height:42px;margin-top:22px;">
+              🔍 Scan Now
+            </button>
+          </div>
+        </div>
+        <div class="scanning" id="other-scan-loader" style="display:none;">
+          <div class="dot-spin"></div>
+          <span>Scanning... this may take 10-20 seconds</span>
+        </div>
+        <div id="other-scan-error" style="color:var(--warn);font-size:13px;margin-top:10px;display:none;"></div>
+      </div>
     </div>
 
     <!-- Manual paste panel -->
@@ -225,6 +436,9 @@ tr:hover td{background:rgba(255,255,255,0.015);}
           <option value="twitter">Twitter</option>
           <option value="facebook">Facebook</option>
           <option value="instagram">Instagram</option>
+          <option value="reddit">Reddit</option>
+          <option value="jobboard">Job Board</option>
+          <option value="directory">Business Directory</option>
           <option value="manual">Other</option>
         </select>
         <button class="btn btn-primary" onclick="saveManual()">💾 Extract & Save</button>
@@ -235,7 +449,7 @@ tr:hover td{background:rgba(255,255,255,0.015);}
     <div class="stats-row" id="stats-row">
       <div class="stat-card"><div class="stat-label">Total Found</div><div class="stat-value c-blue" id="s-total">0</div></div>
       <div class="stat-card"><div class="stat-label">LinkedIn</div><div class="stat-value c-blue" id="s-linkedin">0</div></div>
-      <div class="stat-card"><div class="stat-label">Twitter</div><div class="stat-value c-pink" id="s-twitter">0</div></div>
+      <div class="stat-card"><div class="stat-label">Other Sources</div><div class="stat-value c-pink" id="s-twitter">0</div></div>
       <div class="stat-card"><div class="stat-label">With Email/Phone</div><div class="stat-value c-green" id="s-contact">0</div></div>
       <div class="stat-card"><div class="stat-label">Saved as Lead</div><div class="stat-value c-warn" id="s-saved">0</div></div>
     </div>
@@ -247,6 +461,9 @@ tr:hover td{background:rgba(255,255,255,0.015);}
       <button class="filter-tab" onclick="applyFilter('twitter',this)">🐦 Twitter</button>
       <button class="filter-tab" onclick="applyFilter('facebook',this)">📘 Facebook</button>
       <button class="filter-tab" onclick="applyFilter('instagram',this)">📸 Instagram</button>
+      <button class="filter-tab" onclick="applyFilter('reddit',this)">👽 Reddit</button>
+      <button class="filter-tab" onclick="applyFilter('jobboard',this)">💼 Job Boards</button>
+      <button class="filter-tab" onclick="applyFilter('directory',this)">📒 Directories</button>
       <button class="filter-tab" onclick="applyFilter('has_contact',this)">✅ Has Contact</button>
       <button class="filter-tab" onclick="applyFilter('new',this)">🔵 New</button>
       <button class="filter-tab" onclick="applyFilter('saved',this)">💚 Saved</button>
@@ -290,12 +507,16 @@ let ALL_LEADS = {{ leads|tojson }};
 let currentFilter = 'all';
 let currentPlatform = 'linkedin';
 let searchQuery = '';
+const INITIAL_PLATFORM = "{{ initial_platform or '' }}";
 
 const PLATFORM_COLORS = {
   linkedin:  {cls:'pb-linkedin',  icon:'💼'},
   twitter:   {cls:'pb-twitter',   icon:'🐦'},
   facebook:  {cls:'pb-facebook',  icon:'📘'},
   instagram: {cls:'pb-instagram', icon:'📸'},
+  reddit:    {cls:'pb-reddit',    icon:'👽'},
+  jobboard:  {cls:'pb-jobboard',  icon:'💼'},
+  directory: {cls:'pb-directory', icon:'📒'},
   manual:    {cls:'pb-manual',    icon:'✍️'},
 };
 
@@ -303,79 +524,249 @@ function switchPlatform(p, el) {
   currentPlatform = p;
   document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-
-  const liSetup = document.getElementById('li-setup-box');
-  const liAtRow = document.getElementById('li-at-row');
-  const scanPanel = document.getElementById('scan-panel');
+  const liPanel    = document.getElementById('li-cred-panel');
+  const igPanel    = document.getElementById('ig-panel');
+  const otherPanel = document.getElementById('other-scan-panel');
   const manualPanel = document.getElementById('manual-panel');
-
-  if (p === 'manual') {
-    scanPanel.style.display = 'none';
-    manualPanel.style.display = 'block';
-    liSetup.style.display = 'none';
-  } else {
-    scanPanel.style.display = 'block';
-    manualPanel.style.display = 'none';
-    liSetup.style.display = p === 'linkedin' ? 'block' : 'none';
-    liAtRow.style.display = p === 'linkedin' ? 'block' : 'none';
-  }
+  liPanel.style.display    = p === 'linkedin'  ? 'block' : 'none';
+  igPanel.style.display    = p === 'instagram' ? 'block' : 'none';
+  manualPanel.style.display = p === 'manual'   ? 'block' : 'none';
+  otherPanel.style.display  = !['linkedin','instagram','manual'].includes(p) ? 'block' : 'none';
+  if (p === 'instagram') checkIgStatus();
   applyFilter('all', document.querySelector('.filter-tab'));
 }
 
-async function startScan() {
-  const keywords = document.getElementById('keywords-input').value.trim();
-  const liAt = document.getElementById('li-at-input').value.trim();
-  const btn = document.getElementById('scan-btn');
-  const loader = document.getElementById('scan-loader');
+// ── LinkedIn Login (email + password — visible Chrome browser) ────────────────
+let _loginPollInterval = null;
+
+async function liLogin() {
+  const email    = document.getElementById('li-email').value.trim();
+  const password = document.getElementById('li-password').value.trim();
+  if (!email || !password) { showToast('Email aur password dono enter karo.', true); return; }
+
+  const btn = document.getElementById('li-login-btn');
   const errDiv = document.getElementById('scan-error');
+  const loader = document.getElementById('scan-loader');
+  const statusTxt = document.getElementById('scan-status-text');
 
-  if (!keywords) { showToast('Enter keywords to search.', true); return; }
-  if (currentPlatform === 'linkedin' && !liAt) {
-    showToast('Paste your LinkedIn li_at cookie first.', true); return;
-  }
-
-  btn.disabled = true; btn.textContent = '⏳ Scanning...';
-  loader.classList.add('show');
+  btn.disabled = true; btn.textContent = '⏳ Browser open ho raha hai...';
   errDiv.style.display = 'none';
+  loader.classList.add('show');
+  statusTxt.textContent = 'Chrome browser khul raha hai...';
 
   try {
-    const resp = await fetch('/api/social/scan', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({platform: currentPlatform, keywords, li_at: liAt})
+    const resp = await fetch('/api/social/linkedin/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
     });
     const data = await resp.json();
-
-    if (data.error) {
-      errDiv.textContent = '⚠️ ' + data.error;
+    if (!data.success) {
+      errDiv.textContent = '⚠️ ' + (data.error || 'Failed');
       errDiv.style.display = 'block';
+      loader.classList.remove('show');
+      btn.disabled = false; btn.textContent = '🔐 Login to LinkedIn';
+      return;
     }
-
-    if (data.results && data.results.length > 0) {
-      // Prepend new results to ALL_LEADS
-      ALL_LEADS = [...data.results.map((r,i) => ({...r, id: Date.now()+i, status:'new'})), ...ALL_LEADS];
-      renderTable();
-      calcStats();
-      const autoSaved = data.auto_saved || 0;
-      showToast(`Found ${data.results.length} posts • ${autoSaved} auto-saved to Leads`);
-    } else if (!data.error) {
-      showToast('No posts found for these keywords. Try different keywords.', true);
-    }
+    // Poll status every 2 seconds
+    if (_loginPollInterval) clearInterval(_loginPollInterval);
+    _loginPollInterval = setInterval(async () => {
+      try {
+        const sr = await fetch('/api/social/linkedin/login-status');
+        const sd = await sr.json();
+        statusTxt.textContent = sd.step || 'Processing...';
+        if (sd.done) {
+          clearInterval(_loginPollInterval);
+          loader.classList.remove('show');
+          btn.disabled = false; btn.textContent = '🔐 Login to LinkedIn';
+          setLiStatus(true, email);
+          document.getElementById('li-password').value = '';
+          showToast('LinkedIn login successful! ✅ Ab Scan karo.');
+          // Refresh status badge
+          const r2 = await fetch('/api/social/linkedin/status');
+          const d2 = await r2.json();
+          if (d2.logged_in) setLiStatus(true, d2.email || email);
+        } else if (sd.error) {
+          clearInterval(_loginPollInterval);
+          loader.classList.remove('show');
+          btn.disabled = false; btn.textContent = '🔐 Login to LinkedIn';
+          errDiv.textContent = '⚠️ ' + sd.error;
+          errDiv.style.display = 'block';
+        }
+      } catch(e) {}
+    }, 2000);
   } catch(e) {
-    errDiv.textContent = '⚠️ Network error: ' + e.message;
-    errDiv.style.display = 'block';
+    showToast('Network error: ' + e.message, true);
+    loader.classList.remove('show');
+    btn.disabled = false; btn.textContent = '🔐 Login to LinkedIn';
   }
+}
 
-  btn.disabled = false; btn.textContent = '🔍 Scan Now';
-  loader.classList.remove('show');
+// ── LinkedIn Login (li_at cookie alternative) ─────────────────────────────────
+async function liLoginCookie() {
+  const liAt = document.getElementById('li-at-input').value.trim();
+  if (!liAt) { showToast('li_at cookie paste karo.', true); return; }
+  try {
+    const resp = await fetch('/api/social/linkedin/login', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({li_at: liAt})
+    });
+    const data = await resp.json();
+    if (data.success) { setLiStatus(true, data.email || ''); showToast('Connected via cookie! ✅'); }
+    else { showToast(data.error || 'Cookie invalid', true); }
+  } catch(e) { showToast('Error: ' + e.message, true); }
+}
 
-  // Reload from server to get DB IDs
-  setTimeout(async () => {
-    const r = await fetch('/api/social/leads');
-    ALL_LEADS = await r.json();
-    renderTable();
-    calcStats();
-  }, 1500);
+function addKw(kw) {
+  const inp = document.getElementById('keywords-input');
+  const cur = inp.value.trim();
+  const existing = cur.split(',').map(s => s.trim().toLowerCase());
+  if (!existing.includes(kw.toLowerCase())) {
+    inp.value = cur ? cur + ', ' + kw : kw;
+  }
+}
+
+function setLiStatus(loggedIn, email) {
+  const badge = document.getElementById('li-status-badge');
+  if (loggedIn) {
+    badge.textContent = '🟢 Logged in' + (email ? ' as ' + email : '');
+    badge.style.background = 'rgba(0,255,136,0.1)';
+    badge.style.color = 'var(--accent)';
+    badge.style.borderColor = 'rgba(0,255,136,0.25)';
+  } else {
+    badge.textContent = '⚪ Not logged in';
+    badge.style.background = 'rgba(255,51,102,0.1)';
+    badge.style.color = 'var(--danger)';
+    badge.style.borderColor = 'rgba(255,51,102,0.2)';
+  }
+}
+
+async function saveLiSettings() {
+  const autoMonitor = document.getElementById('li-auto-monitor').checked;
+  const autoComment = document.getElementById('li-auto-comment').checked;
+  const interval = document.getElementById('li-interval').value;
+  const tpl = document.getElementById('li-comment-tpl').value;
+  const keywords = document.getElementById('keywords-input').value.trim();
+  document.getElementById('li-monitor-label').textContent = autoMonitor ? 'On' : 'Off';
+  document.getElementById('li-comment-label').textContent = autoComment ? 'On' : 'Off';
+  await fetch('/api/social/linkedin/settings', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      linkedin_auto_monitor: autoMonitor ? '1' : '0',
+      linkedin_comment_auto: autoComment ? '1' : '0',
+      linkedin_monitor_interval: interval,
+      linkedin_comment_template: tpl,
+      social_keywords: keywords
+    })
+  });
+  showToast('Settings saved.');
+}
+
+// ── LinkedIn Scan + Comment ────────────────────────────────────────────────────
+let _scanPollInterval = null;
+
+async function startScan(withComment=false) {
+  const keywords = document.getElementById('keywords-input').value.trim();
+  const commentTpl = document.getElementById('li-comment-tpl').value.trim();
+  const errDiv = document.getElementById('scan-error');
+  const loader = document.getElementById('scan-loader');
+  const scanBtn = document.getElementById('scan-btn');
+  const scanCBtn = document.getElementById('scan-comment-btn');
+  const statusTxt = document.getElementById('scan-status-text');
+
+  if (!keywords) { showToast('Enter keywords to search.', true); return; }
+  scanBtn.disabled = true; scanCBtn.disabled = true;
+  scanBtn.textContent = '⏳'; scanCBtn.textContent = '⏳ Working...';
+  loader.classList.add('show');
+  errDiv.style.display = 'none';
+  statusTxt.textContent = 'Browser shuru ho raha hai...';
+
+  try {
+    const resp = await fetch('/api/social/linkedin/scan-comment', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({keywords, auto_comment: withComment, comment_template: commentTpl})
+    });
+    const data = await resp.json();
+    if (!data.success) {
+      errDiv.textContent = '⚠️ ' + (data.error || 'Unknown error');
+      errDiv.style.display = 'block';
+      loader.classList.remove('show');
+      scanBtn.disabled = false; scanCBtn.disabled = false;
+      scanBtn.textContent = '🔍 Scan Only'; scanCBtn.textContent = '💬 Scan + Comment';
+      return;
+    }
+    // Async: poll scan status every 2 seconds
+    if (_scanPollInterval) clearInterval(_scanPollInterval);
+    _scanPollInterval = setInterval(async () => {
+      try {
+        const sr = await fetch('/api/social/linkedin/scan-status');
+        const sd = await sr.json();
+        statusTxt.textContent = sd.step || 'Processing...';
+        if (sd.done) {
+          clearInterval(_scanPollInterval); _scanPollInterval = null;
+          loader.classList.remove('show');
+          scanBtn.disabled = false; scanCBtn.disabled = false;
+          scanBtn.textContent = '🔍 Scan Only'; scanCBtn.textContent = '💬 Scan + Comment';
+          if (sd.error && !sd.count) {
+            errDiv.textContent = '⚠️ ' + sd.error;
+            errDiv.style.display = 'block';
+          } else {
+            if (sd.error) { errDiv.textContent = '⚠️ ' + sd.error; errDiv.style.display = 'block'; }
+            if (sd.count > 0) {
+              let msg = `Found ${sd.count} posts`;
+              if (withComment) msg += ` • ${sd.commented} commented`;
+              if (sd.auto_saved) msg += ` • ${sd.auto_saved} leads auto-saved`;
+              showToast(msg);
+            } else {
+              showToast('No posts found. Try broader keywords.', true);
+            }
+          }
+          const r = await fetch('/api/social/leads');
+          ALL_LEADS = await r.json();
+          renderTable(); calcStats();
+        } else if (sd.error && !sd.step) {
+          clearInterval(_scanPollInterval); _scanPollInterval = null;
+          loader.classList.remove('show');
+          scanBtn.disabled = false; scanCBtn.disabled = false;
+          scanBtn.textContent = '🔍 Scan Only'; scanCBtn.textContent = '💬 Scan + Comment';
+          errDiv.textContent = '⚠️ ' + sd.error;
+          errDiv.style.display = 'block';
+        }
+      } catch(e) {}
+    }, 2000);
+  } catch(e) {
+    errDiv.textContent = '⚠️ ' + e.message; errDiv.style.display = 'block';
+    loader.classList.remove('show');
+    scanBtn.disabled = false; scanCBtn.disabled = false;
+    scanBtn.textContent = '🔍 Scan Only'; scanCBtn.textContent = '💬 Scan + Comment';
+  }
+}
+
+// ── Other platforms (Twitter, FB, IG) ─────────────────────────────────────────
+async function startOtherScan() {
+  const keywords = document.getElementById('keywords-input-other').value.trim();
+  const btn = document.getElementById('other-scan-btn');
+  const loader = document.getElementById('other-scan-loader');
+  const errDiv = document.getElementById('other-scan-error');
+  if (!keywords) { showToast('Enter keywords.', true); return; }
+  btn.disabled = true; btn.textContent = '⏳ Scanning...';
+  loader.style.display = 'flex'; errDiv.style.display = 'none';
+  try {
+    const resp = await fetch('/api/social/scan', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({platform: currentPlatform, keywords})
+    });
+    const data = await resp.json();
+    if (data.error) { errDiv.textContent = '⚠️ ' + data.error; errDiv.style.display = 'block'; }
+    if (data.results && data.results.length > 0) {
+      showToast(`Found ${data.results.length} posts!`);
+      const r = await fetch('/api/social/leads');
+      ALL_LEADS = await r.json();
+      renderTable(); calcStats();
+    } else if (!data.error) {
+      showToast('No posts found. Try different keywords.', true);
+    }
+  } catch(e) { errDiv.textContent = '⚠️ ' + e.message; errDiv.style.display = 'block'; }
+  loader.style.display = 'none'; btn.disabled = false; btn.textContent = '🔍 Scan Now';
 }
 
 async function saveManual() {
@@ -481,7 +872,7 @@ function getFiltered() {
   if (currentFilter === 'has_contact') leads = leads.filter(l => l.email || l.phone);
   else if (currentFilter === 'new') leads = leads.filter(l => l.status === 'new');
   else if (currentFilter === 'saved') leads = leads.filter(l => l.status === 'saved');
-  else if (['linkedin','twitter','facebook','instagram','manual'].includes(currentFilter))
+  else if (['linkedin','twitter','facebook','instagram','reddit','jobboard','directory','manual'].includes(currentFilter))
     leads = leads.filter(l => l.platform === currentFilter);
   if (searchQuery) {
     leads = leads.filter(l =>
@@ -549,7 +940,7 @@ function renderTable() {
 function calcStats() {
   document.getElementById('s-total').textContent     = ALL_LEADS.length;
   document.getElementById('s-linkedin').textContent  = ALL_LEADS.filter(l=>l.platform==='linkedin').length;
-  document.getElementById('s-twitter').textContent   = ALL_LEADS.filter(l=>l.platform==='twitter').length;
+  document.getElementById('s-twitter').textContent   = ALL_LEADS.filter(l=>['twitter','facebook','instagram','reddit','jobboard','directory'].includes(l.platform)).length;
   document.getElementById('s-contact').textContent   = ALL_LEADS.filter(l=>l.email||l.phone).length;
   document.getElementById('s-saved').textContent     = ALL_LEADS.filter(l=>l.status==='saved').length;
 }
@@ -565,9 +956,174 @@ function showToast(msg, isErr=false) {
   setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-// init
-calcStats();
-renderTable();
+// init — check LinkedIn status + load saved settings
+(async function init() {
+  calcStats();
+  renderTable();
+  if (INITIAL_PLATFORM) {
+    const tab = document.getElementById(`ptab-${INITIAL_PLATFORM}`);
+    if (tab) switchPlatform(INITIAL_PLATFORM, tab);
+  }
+  try {
+    const r = await fetch('/api/social/linkedin/status');
+    const d = await r.json();
+    if (d.logged_in) setLiStatus(true, d.email);
+    if (d.auto_monitor) document.getElementById('li-auto-monitor').checked = true;
+    if (d.auto_comment) document.getElementById('li-auto-comment').checked = true;
+    if (d.monitor_interval) document.getElementById('li-interval').value = d.monitor_interval;
+    if (d.comment_template) document.getElementById('li-comment-tpl').value = d.comment_template;
+    document.getElementById('li-monitor-label').textContent = d.auto_monitor ? 'On' : 'Off';
+    document.getElementById('li-comment-label').textContent = d.auto_comment ? 'On' : 'Off';
+  } catch(e) {}
+})();
+
+// ── Instagram ─────────────────────────────────────────────────────────────────
+let _igLoginPoll = null;
+let _igDmPoll    = null;
+
+async function checkIgStatus() {
+  try {
+    const r = await fetch('/api/social/instagram/status');
+    const d = await r.json();
+    const badge = document.getElementById('ig-status-badge');
+    if (d.connected) {
+      badge.style.background = 'rgba(0,255,136,0.1)';
+      badge.style.color = 'var(--accent)';
+      badge.style.borderColor = 'rgba(0,255,136,0.3)';
+      badge.textContent = d.username ? `🟢 @${d.username}` : ('🟢 Connected' + (d.email ? ' — ' + d.email : ''));
+      document.getElementById('ig-email').closest('.form-group').style.display = 'none';
+      document.getElementById('ig-password').closest('.form-group').style.display = 'none';
+      document.getElementById('ig-login-btn').style.display = 'none';
+      document.getElementById('ig-disconnect-btn').style.display = '';
+    } else {
+      badge.textContent = '⚪ Not connected';
+      badge.style.background = 'rgba(255,51,102,0.1)';
+      badge.style.color = 'var(--danger)';
+      document.getElementById('ig-email').closest('.form-group').style.display = '';
+      document.getElementById('ig-password').closest('.form-group').style.display = '';
+      document.getElementById('ig-login-btn').style.display = '';
+      document.getElementById('ig-disconnect-btn').style.display = 'none';
+    }
+  } catch(e) {}
+}
+
+async function igDisconnect() {
+  try {
+    await fetch('/api/social/instagram/logout', { method: 'POST' });
+  } catch(e) {}
+  checkIgStatus();
+  document.getElementById('ig-login-status-txt').textContent = 'Disconnected.';
+}
+
+async function igLogin() {
+  const email    = document.getElementById('ig-email').value.trim();
+  const password = document.getElementById('ig-password').value.trim();
+  if (!email || !password) { showToast('Please enter both email and password.', true); return; }
+
+  const btn = document.getElementById('ig-login-btn');
+  const statusTxt = document.getElementById('ig-login-status-txt');
+  btn.disabled = true; btn.textContent = '⏳ Opening browser...';
+  statusTxt.textContent = 'Opening Chrome browser...';
+
+  try {
+    const resp = await fetch('/api/social/instagram/login', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    const data = await resp.json();
+    if (!data.success) {
+      statusTxt.textContent = '⚠️ ' + (data.error || 'Failed');
+      btn.disabled = false; btn.textContent = '📸 Login to Instagram';
+      return;
+    }
+    if (_igLoginPoll) clearInterval(_igLoginPoll);
+    _igLoginPoll = setInterval(async () => {
+      try {
+        const sr = await fetch('/api/social/instagram/login-status');
+        const sd = await sr.json();
+        statusTxt.textContent = sd.step || 'Processing...';
+        if (sd.error) {
+          clearInterval(_igLoginPoll);
+          statusTxt.textContent = '❌ ' + sd.error;
+          btn.disabled = false; btn.textContent = '📸 Login to Instagram';
+        }
+        if (sd.done && !sd.error) {
+          clearInterval(_igLoginPoll);
+          btn.disabled = false; btn.textContent = '📸 Login to Instagram';
+          showToast('Instagram connected!');
+          checkIgStatus();
+        }
+      } catch(e) {}
+    }, 2000);
+  } catch(e) {
+    statusTxt.textContent = '❌ ' + e.message;
+    btn.disabled = false; btn.textContent = '📸 Login to Instagram';
+  }
+}
+
+async function startIgDm() {
+  const niche   = document.getElementById('ig-niche').value.trim();
+  const message = document.getElementById('ig-message').value.trim();
+  const maxDms  = parseInt(document.getElementById('ig-max-dms').value) || 10;
+  const delay   = parseInt(document.getElementById('ig-delay').value) || 35;
+
+  if (!niche)   { showToast('Please enter a niche (e.g. bakery).', true); return; }
+  if (!message) { showToast('Please enter a message template.', true); return; }
+
+  const btn      = document.getElementById('ig-dm-btn');
+  const progress = document.getElementById('ig-dm-progress');
+  const statusTxt= document.getElementById('ig-dm-status-txt');
+  const countEl  = document.getElementById('ig-dm-count');
+  const errDiv   = document.getElementById('ig-dm-error');
+
+  btn.disabled = true; btn.textContent = '⏳ Starting...';
+  progress.style.display = 'flex'; errDiv.style.display = 'none';
+  statusTxt.textContent = 'Opening browser...';
+  countEl.textContent = '';
+
+  try {
+    const resp = await fetch('/api/social/instagram/dm', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({niche, message, max_count: maxDms, delay})
+    });
+    const data = await resp.json();
+    if (!data.success) {
+      errDiv.textContent = '⚠️ ' + (data.error || 'Failed');
+      errDiv.style.display = 'block';
+      progress.style.display = 'none';
+      btn.disabled = false; btn.textContent = '📤 Start DM Campaign';
+      return;
+    }
+    if (_igDmPoll) clearInterval(_igDmPoll);
+    _igDmPoll = setInterval(async () => {
+      try {
+        const sr = await fetch('/api/social/instagram/dm-status');
+        const sd = await sr.json();
+        statusTxt.textContent = sd.step || 'Processing...';
+        if (sd.total > 0) countEl.textContent = `${sd.sent}/${sd.total} sent`;
+        if (sd.error) {
+          clearInterval(_igDmPoll);
+          errDiv.textContent = '⚠️ ' + sd.error;
+          errDiv.style.display = 'block';
+          progress.style.display = 'none';
+          btn.disabled = false; btn.textContent = '📤 Start DM Campaign';
+        }
+        if (sd.done && !sd.error) {
+          clearInterval(_igDmPoll);
+          progress.style.display = 'none';
+          btn.disabled = false; btn.textContent = '📤 Start DM Campaign';
+          showToast(`Done! ${sd.sent} DMs sent successfully.`);
+          loadLeads();
+        }
+      } catch(e) {}
+    }, 2000);
+  } catch(e) {
+    errDiv.textContent = '❌ ' + e.message;
+    errDiv.style.display = 'block';
+    progress.style.display = 'none';
+    btn.disabled = false; btn.textContent = '📤 Start DM Campaign';
+  }
+}
 </script>
 </body>
 </html>

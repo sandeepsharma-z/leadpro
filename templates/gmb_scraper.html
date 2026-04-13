@@ -141,8 +141,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); min-
     <a href="/leads" class="nav-item"><span class="icon">👥</span> All Leads</a>
     <a href="/cold-leads" class="nav-item"><span class="icon">🧊</span> Cold Leads</a>
     <a href="/gmb-scraper" class="nav-item active"><span class="icon">🗺️</span> GMB Scraper <span class="status-dot"></span></a>
+    <a href="/whatsapp" class="nav-item"><span class="icon">🟢</span> WhatsApp</a>
     <a href="/campaigns" class="nav-item"><span class="icon">📧</span> Campaigns</a>
     <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/social?platform=reddit" class="nav-item"><span class="icon">👽</span> Reddit Leads</a>
+    <a href="/social?platform=jobboard" class="nav-item"><span class="icon">💼</span> Job Boards</a>
+    <a href="/social?platform=directory" class="nav-item"><span class="icon">📒</span> Directories</a>
     <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
     <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
   </div>
@@ -436,6 +440,9 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); min-
           <button class="btn btn-success" id="btn-import" onclick="importLeads()">
             💾 Import to LeadPro
           </button>
+          <a class="btn btn-secondary" href="/whatsapp" style="border-color:rgba(37,211,102,0.45);color:#25d366;text-decoration:none">
+            WhatsApp Drafts
+          </a>
           <button class="btn btn-secondary" id="btn-sheets" onclick="openSheetsModal()" style="border-color:rgba(66,133,244,0.4);color:#4285f4">
             📊 Publish to Google Sheet
           </button>
@@ -542,6 +549,7 @@ async function startScraper() {
   const city = document.getElementById('inp-city').value.trim();
   const country = document.getElementById('inp-country').value.trim();
   const niche = document.getElementById('inp-niche').value.trim();
+  const serviceNeeded = document.getElementById('inp-service').value.trim();
   const limit = parseInt(document.getElementById('inp-limit').value) || 20;
 
   if (!city || !country || !niche) {
@@ -563,10 +571,16 @@ async function startScraper() {
   document.getElementById('btn-stop').style.display = 'inline-flex';
 
   try {
+    try {
+      localStorage.setItem('leadpro_last_service_needed', serviceNeeded);
+      localStorage.setItem('leadpro_last_niche', niche);
+      localStorage.setItem('leadpro_last_city', city);
+      localStorage.setItem('leadpro_last_country', country);
+    } catch(_) {}
     const res = await fetch('/api/gmb/start', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ city, country, category: niche, limit }),
+      body: JSON.stringify({ city, country, category: niche, service_needed: serviceNeeded, limit }),
     });
     const d = await res.json();
     if (!d.success) {
@@ -603,7 +617,17 @@ async function pollStatus() {
 
     // Append new log lines
     if (d.new_logs && d.new_logs.length) {
-      d.new_logs.forEach(line => { if (line.trim()) addLog(line); });
+      const mode = getLeadViewModeByService(document.getElementById('inp-service')?.value || '');
+      d.new_logs.forEach(line => {
+        if (!line.trim()) return;
+        const s = line.toLowerCase();
+        if (mode === 'no_website') {
+          if (s.includes('seo lead') || s.includes('checking seo') || s.includes('website ok')) return;
+        } else if (mode === 'poor_seo') {
+          if (s.includes('no website lead') || s.includes('no website')) return;
+        }
+        addLog(line);
+      });
       logOffset += d.new_logs.length;
     }
 
@@ -632,14 +656,45 @@ async function pollStatus() {
   } catch(e) { /* ignore poll errors */ }
 }
 
+function getLeadViewModeByService(service) {
+  const s = (service || '').toLowerCase();
+  const seoKeys = ['seo', 'google ads', 'ppc', 'marketing', 'social media', 'content marketing', 'email marketing', 'gmb optimization', 'local seo'];
+  const webKeys = ['website', 'wordpress', 'landing page', 'e-commerce', 'mobile app'];
+  if (seoKeys.some(k => s.includes(k))) return 'poor_seo';
+  if (webKeys.some(k => s.includes(k))) return 'no_website';
+  return 'all';
+}
+
+function getFilteredLeadsByService(leads) {
+  const service = document.getElementById('inp-service')?.value || '';
+  const mode = getLeadViewModeByService(service);
+  if (mode === 'all') return leads || [];
+  return (leads || []).filter(l => {
+    const leadType = (l.lead_type || 'no_website').toLowerCase();
+    return mode === 'no_website' ? leadType !== 'poor_seo' : leadType === 'poor_seo';
+  });
+}
+
 function renderResults(leads) {
   if (!leads || leads.length === 0) return;
+  const filteredLeads = getFilteredLeadsByService(leads);
+
   document.getElementById('results-section').style.display = 'block';
   document.getElementById('empty-state').style.display = 'none';
-  document.getElementById('lead-count-label').textContent = `${leads.length} lead${leads.length !== 1 ? 's' : ''} ready`;
+  document.getElementById('lead-count-label').textContent = `${filteredLeads.length} lead${filteredLeads.length !== 1 ? 's' : ''} ready`;
+
+  try {
+    localStorage.setItem('leadpro_latest_scraped_leads_raw', JSON.stringify(leads || []));
+    localStorage.setItem('leadpro_latest_scraped_leads', JSON.stringify(filteredLeads));
+  } catch (_) {}
 
   const tbody = document.getElementById('results-tbody');
-  tbody.innerHTML = leads.map((l, i) => {
+  if (!filteredLeads.length) {
+    tbody.innerHTML = '<tr><td colspan="12" style="padding:14px;color:var(--muted)">No matching leads for selected service filter.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filteredLeads.map((l, i) => {
     const isNoWebsite = !l.lead_type || l.lead_type === 'no_website';
     const isPoorSeo   = l.lead_type === 'poor_seo';
     const seoScore    = l.seo_score !== undefined && l.seo_score !== '' ? parseInt(l.seo_score) : null;
@@ -649,19 +704,19 @@ function renderResults(leads) {
     return `
     <tr>
       <td style="color:var(--muted);font-family:var(--font-mono)">${i + 1}</td>
-      <td><strong>${esc(l.name || '—')}</strong></td>
-      <td style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${esc(l.phone || '—')}</td>
+      <td><strong>${esc(l.name || 'N/A')}</strong></td>
+      <td style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">${esc(l.phone || 'N/A')}</td>
       <td style="font-size:12px">
         ${l.email
           ? `<a href="mailto:${esc(l.email)}" style="color:var(--accent2);text-decoration:none;font-size:11px">${esc(l.email)}</a>`
-          : `<span style="color:var(--muted)">—</span>`
+          : `<span style="color:var(--muted)">N/A</span>`
         }
       </td>
-      <td style="color:var(--muted);font-size:12px;max-width:180px">${esc(l.address || '—')}</td>
+      <td style="color:var(--muted);font-size:12px;max-width:180px">${esc(l.address || 'N/A')}</td>
       <td style="font-family:var(--font-mono)">
-        ${l.rating ? `<span style="color:var(--warn)">★ ${esc(l.rating)}</span>` : '—'}
+        ${l.rating ? `<span style="color:var(--warn)">* ${esc(l.rating)}</span>` : 'N/A'}
       </td>
-      <td style="font-size:12px;color:var(--muted)">${esc(l.category || '—')}</td>
+      <td style="font-size:12px;color:var(--muted)">${esc(l.category || 'N/A')}</td>
       <td>
         ${isNoWebsite
           ? `<span class="badge badge-no">NO WEBSITE</span>`
@@ -676,19 +731,19 @@ function renderResults(leads) {
       </td>
       <td style="font-size:11px;color:var(--muted);max-width:220px">
         ${issuesList.length
-          ? issuesList.map(issue => `<div style="padding:1px 0;line-height:1.5">• ${esc(issue)}</div>`).join('')
-          : `<span style="color:var(--muted)">—</span>`
+          ? issuesList.map(issue => `<div style="padding:1px 0;line-height:1.5">- ${esc(issue)}</div>`).join('')
+          : `<span style="color:var(--muted)">N/A</span>`
         }
       </td>
       <td>
         ${isPoorSeo && l.website_url
-          ? `<a href="${esc(l.website_url)}" target="_blank" style="color:var(--accent2);font-size:12px;text-decoration:none">Visit ↗</a>`
-          : `<span style="color:var(--muted);font-size:11px">—</span>`
+          ? `<a href="${esc(l.website_url)}" target="_blank" style="color:var(--accent2);font-size:12px;text-decoration:none">Visit -></a>`
+          : `<span style="color:var(--muted);font-size:11px">N/A</span>`
         }
       </td>
       <td>
         <a href="${esc(l.gmb_url || '#')}" target="_blank" style="color:var(--accent2);font-size:12px;text-decoration:none">
-          Maps ↗
+          Maps ->
         </a>
       </td>
     </tr>`;
@@ -701,6 +756,8 @@ function esc(s) {
 
 async function importLeads() {
   if (!scrapedLeads.length) { showToast('Pehle scrape karo!', 'error'); return; }
+  const leadsToImport = getFilteredLeadsByService(scrapedLeads);
+  if (!leadsToImport.length) { showToast('Selected service ke liye matching leads nahi hain.', 'error'); return; }
   const service = document.getElementById('inp-service').value;
   const btn = document.getElementById('btn-import');
   btn.textContent = 'Importing…';
@@ -709,11 +766,16 @@ async function importLeads() {
     const res = await fetch('/api/gmb/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leads: scrapedLeads, service_needed: service }),
+      body: JSON.stringify({ leads: leadsToImport, service_needed: service }),
     });
     const d = await res.json();
     if (d.success) {
-      showToast(`${d.inserted} leads LeadPro mein add ho gaye!`);
+      const withEmail = Number(d.inserted_with_email || 0);
+      const noEmail = Number(d.inserted_without_email || 0);
+      const dupE = Number(d.duplicate_email || 0);
+      const dupN = Number(d.duplicate_no_email || 0);
+      const invE = Number(d.invalid_email || 0);
+      showToast(`${d.inserted} imported | email: ${withEmail}, cold: ${noEmail}, dup: ${dupE + dupN}${invE ? `, invalid email: ${invE}` : ''}`);
       btn.textContent = `✓ ${d.inserted} Imported`;
     } else {
       showToast(d.error || 'Import failed', 'error');
@@ -741,6 +803,7 @@ function resetImportButton() {
 
 function setNiche(niche) {
   document.getElementById('inp-niche').value = niche;
+  try { localStorage.setItem('leadpro_last_niche', niche || ''); } catch(_) {}
   document.getElementById('inp-niche').focus();
 }
 
@@ -842,5 +905,15 @@ async function publishToSheets() {
     </div>
   </div>
 </div>
+<script>
+document.getElementById('inp-service')?.addEventListener('change', () => {
+  try { localStorage.setItem('leadpro_last_service_needed', document.getElementById('inp-service')?.value || ''); } catch(_) {}
+  if (scrapedLeads && scrapedLeads.length) renderResults(scrapedLeads);
+});
+
+document.getElementById('inp-niche')?.addEventListener('change', () => {
+  try { localStorage.setItem('leadpro_last_niche', document.getElementById('inp-niche')?.value || ''); } catch(_) {}
+});
+</script>
 </body>
 </html>

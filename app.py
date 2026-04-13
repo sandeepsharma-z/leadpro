@@ -144,7 +144,13 @@ def init_db():
         ('opencrawl_daily_new_leads_limit', '100'),
         ('opencrawl_auto_email', '1'),
         ('linkedin_li_at', ''),
-        ('social_keywords', 'need website,website development,need SEO,looking for developer,need digital marketing'),
+        ('linkedin_email', ''),
+        ('linkedin_password', ''),
+        ('linkedin_auto_monitor', '0'),
+        ('linkedin_monitor_interval', '30'),
+        ('linkedin_comment_auto', '0'),
+        ('linkedin_comment_template', 'Hi {name}! 👋 Noticed you might be looking for help with {service}. We have helped 50+ businesses grow online with professional website development, SEO & digital marketing. Would love to share a quick proposal — feel free to connect or drop your email! 🚀'),
+        ('social_keywords', 'need website,looking for web developer,need SEO services,need digital marketing,website banana hai'),
         ('social_auto_save', '1'),
         ('social_default_service', 'Website Development'),
         ('booking_days_ahead', '14'),
@@ -153,6 +159,13 @@ def init_db():
         ('booking_slot_minutes', '60'),
         ('booking_title', 'Book a Free Discovery Call'),
         ('booking_subtitle', 'Pick a time that works for you — 15 minutes, no pressure.'),
+        ('ig_sessionid', ''),
+        ('ig_csrftoken', ''),
+        ('ig_email', ''),
+        ('ig_niche', ''),
+        ('ig_message_template', 'Hi {name}! 👋\n\nI came across your profile and love what you\'re doing in the {niche} space!\n\nI noticed you don\'t have a website yet — that\'s actually a big opportunity. A professional website can bring you 3–5x more clients on autopilot through Google searches.\n\nWe build fast, stunning websites starting from just $299. The first consultation is 100% free — no pressure at all.\n\nWould you be open to a quick 10-minute call this week? 🚀'),
+        ('ig_max_dms', '10'),
+        ('ig_delay_seconds', '35'),
     ]
     for k, v in defaults:
         c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?,?)", (k, v))
@@ -175,10 +188,64 @@ def init_db():
     except Exception:
         pass
     try:
+        c.execute("ALTER TABLE social_leads ADD COLUMN post_urn TEXT")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE social_leads ADD COLUMN commented INTEGER DEFAULT 0")
+    except Exception:
+        pass
+    try:
         c.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_social_unique
                      ON social_leads(platform, author, post_url, post_text)""")
     except Exception:
         pass
+    # Campaign cold outreach columns
+    for col_sql in [
+        "ALTER TABLE campaigns ADD COLUMN template_type VARCHAR(50) DEFAULT 'html'",
+        "ALTER TABLE campaigns ADD COLUMN template_name VARCHAR(100) DEFAULT ''",
+        "ALTER TABLE campaigns ADD COLUMN followup_days INTEGER DEFAULT 0",
+        "ALTER TABLE campaigns ADD COLUMN personalization_json TEXT DEFAULT '{}'",
+    ]:
+        try:
+            c.execute(col_sql)
+        except Exception:
+            pass
+    # Cold email plain-text templates table
+    c.execute('''CREATE TABLE IF NOT EXISTS email_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        display_name TEXT,
+        template_type TEXT DEFAULT 'plain_text',
+        subject TEXT,
+        body TEXT,
+        created_on TEXT DEFAULT CURRENT_TIMESTAMP
+    )''')
+    # Seed 6 cold outreach templates (INSERT OR IGNORE = never overwrite user edits)
+    cold_templates = [
+        ('cold_no_website', 'No Website (Direct)', 'plain_text',
+         'Quick question about {{business_name}}',
+         "Hi,\n\nSaw {{business_name}} on Google Maps - love the reviews!\n\nBut noticed you don't have a website yet. That's costing you customers who search online before visiting.\n\nWe build simple, affordable websites for local {{industry}} businesses in {{location}}.\n\nWant a free mockup of what your site could look like?\n\nJust reply \"YES\" and I'll send it over.\n\nCheers,\n{{sender_name}}\nSolvinex"),
+        ('cold_competitor', 'Competitor Angle', 'plain_text',
+         'Your competitor just got ahead',
+         "Hi,\n\nQuick heads up - another {{industry}} in {{location}} just launched their website.\n\nThey're now showing up higher on Google when people search for \"{{industry}} near me.\"\n\nWant to catch up? We can get you online in 7 days.\n\nReply for free quote.\n\n{{sender_name}}\nSolvinex"),
+        ('cold_free_audit', 'Free Audit Offer', 'plain_text',
+         'Free website audit for {{business_name}}',
+         "Hi,\n\nI help {{industry}} businesses in {{location}} get more customers online.\n\nCan I send you a quick (free) audit showing:\n✓ How you rank vs competitors\n✓ What's missing from your online presence\n✓ 3 quick wins to get more walk-ins\n\nTakes 2 minutes. Interested?\n\n{{sender_name}}\nSolvinex"),
+        ('cold_social_proof', 'Social Proof / Case Study', 'plain_text',
+         'Case study: {{industry}} got 40% more customers',
+         "Hi,\n\nLast month we built a website for a {{industry}} in {{location}}.\n\nResult: 40% increase in phone calls + bookings in first 30 days.\n\nWould similar results interest you for {{business_name}}?\n\nReply \"DETAILS\" to see the case study.\n\n{{sender_name}}\nSolvinex"),
+        ('cold_limited_offer', 'Limited Offer', 'plain_text',
+         'Special offer for {{location}} businesses',
+         "Hi {{business_name}},\n\nRunning a promotion this month for {{location}} {{industry}} businesses:\n✓ Professional website - 50% off\n✓ Free mobile optimization\n✓ 3 months free support\n\nOnly 3 spots left this month.\n\nInterested? Reply FAST.\n\n{{sender_name}}\nSolvinex"),
+        ('cold_followup', 'Follow-up', 'plain_text',
+         'Re: {{business_name}} website',
+         "Hi,\n\nFollowing up on my email from {{days_ago}} days ago.\n\nStill happy to send that free website mockup if you're interested.\n\nNo pressure - just reply \"YES\" or \"NOT NOW\" so I know.\n\nThanks!\n{{sender_name}}\nSolvinex"),
+    ]
+    for name, display, ttype, subj, body in cold_templates:
+        c.execute('''INSERT OR IGNORE INTO email_templates
+            (name, display_name, template_type, subject, body)
+            VALUES (?,?,?,?,?)''', (name, display, ttype, subj, body))
     conn.commit()
     conn.close()
 
@@ -211,9 +278,15 @@ def _safe_float(value, default):
         return default
 
 def _normalize_email(value):
-    e = (value or '').strip().lower()
-    if not e:
+    raw = (value or '').strip().lower()
+    if not raw:
         return None
+    # Accept common scraped formats: "mailto:x@y.com", "<x@y.com>", "x@y.com;"
+    raw = re.sub(r'^mailto:\s*', '', raw)
+    m = re.search(r'([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})', raw)
+    if not m:
+        return None
+    e = m.group(1).strip().strip('.,;:!?)(')
     if re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', e):
         return e
     return None
@@ -229,20 +302,92 @@ def _get_today_sent_count(conn=None):
         conn.close()
     return count
 
-def _personalize_text(text, biz_name, service, sender_name):
+def _personalize_text(text, biz_name, service, sender_name, extra=None):
     s = get_all_settings()
     brand_font = s.get('brand_font', 'Inter')
     brand_font_google = quote_plus(brand_font).replace('%20', '+')
-    return (text or '') \
+    sender_email = s.get('smtp_user', '') or s.get('smtp_username', '')
+    ex = extra or {}
+    result = (text or '') \
         .replace('{business}', biz_name or '') \
         .replace('{service}', service or '') \
+        .replace('{industry}', ex.get('industry', service.split(',')[0].strip() if service else '') or '') \
+        .replace('{review_count}', ex.get('review_count', '') or '') \
         .replace('{sender_name}', sender_name or '') \
+        .replace('{sender_email}', sender_email) \
         .replace('{logo_white_url}', s.get('logo_white_url', 'https://solvinex.com/uploads/footer-logo-white.png')) \
         .replace('{logo_color_url}', s.get('logo_color_url', 'https://solvinex.com/uploads/header-logo.png')) \
         .replace('{brand_primary}', s.get('brand_primary', '#2563eb')) \
         .replace('{brand_secondary}', s.get('brand_secondary', '#0ea5e9')) \
         .replace('{brand_font}', brand_font) \
         .replace('{brand_font_google}', brand_font_google)
+    # Also handle {{double_brace}} style (plain text templates)
+    result = result \
+        .replace('{{business_name}}', biz_name or '') \
+        .replace('{{location}}', ex.get('location', '') or '') \
+        .replace('{{industry}}', ex.get('industry', service.split(',')[0].strip() if service else '') or '') \
+        .replace('{{sender_name}}', sender_name or '') \
+        .replace('{{days_ago}}', ex.get('days_ago', '3') or '3')
+    return result
+
+def _append_social_links_footer(body_html):
+    body = body_html or ''
+
+    def _normalize_social_anchor_labels(html):
+        out = html or ''
+        canonical = [
+            (
+                r'https?://(?:www\.)?instagram\.com/solvinex_com/?',
+                "<a href=\"https://www.instagram.com/solvinex_com/\" style=\"display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;\">Instagram</a>",
+            ),
+            (
+                r'https?://(?:www\.)?x\.com/solvinex_com/?',
+                "<a href=\"https://x.com/solvinex_com\" style=\"display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;\">X</a>",
+            ),
+            (
+                r'https?://(?:www\.)?linkedin\.com/company/solvinex/?',
+                "<a href=\"https://www.linkedin.com/company/solvinex\" style=\"display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;\">LinkedIn</a>",
+            ),
+            (
+                r'https?://(?:www\.)?facebook\.com/solvinex/?',
+                "<a href=\"https://www.facebook.com/solvinex/\" style=\"display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;\">Facebook</a>",
+            ),
+        ]
+        for href_rx, anchor_html in canonical:
+            out = re.sub(
+                rf"<a\b[^>]*href=[\"']{href_rx}[\"'][^>]*>.*?</a>",
+                anchor_html,
+                out,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+        return out
+
+    body = _normalize_social_anchor_labels(body)
+    social_urls = [
+        'https://www.instagram.com/solvinex_com/',
+        'https://x.com/solvinex_com',
+        'https://www.linkedin.com/company/solvinex',
+        'https://www.facebook.com/solvinex/',
+    ]
+    if any(u in body for u in social_urls):
+        return body
+
+    footer_block = (
+        "<div style=\"margin-top:22px;padding-top:14px;border-top:1px solid #e5e7eb;"
+        "font-family:Arial,sans-serif;font-size:13px;color:#64748b\">"
+        "<div style=\"margin-bottom:6px;\"><strong style=\"color:#334155;\">Follow Solvinex:</strong></div>"
+        "<div>"
+        "<a href=\"https://www.instagram.com/solvinex_com/\" style=\"display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;\">Instagram</a>"
+        "<a href=\"https://x.com/solvinex_com\" style=\"display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;\">X</a>"
+        "<a href=\"https://www.linkedin.com/company/solvinex\" style=\"display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;\">LinkedIn</a>"
+        "<a href=\"https://www.facebook.com/solvinex/\" style=\"display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;\">Facebook</a>"
+        "</div>"
+        "</div>"
+    )
+    if '</body>' in body.lower():
+        idx = body.lower().rfind('</body>')
+        return body[:idx] + footer_block + body[idx:]
+    return body + footer_block
 
 def _human_delay(settings):
     base = max(1.0, _safe_float(settings.get('delay_between', 3), 3.0))
@@ -806,18 +951,58 @@ def campaigns():
 @app.route('/api/campaigns/save', methods=['POST'])
 def save_campaign():
     data = request.json
+    ttype   = data.get('template_type', 'html')
+    tname   = data.get('template_name', '')
+    fdays   = int(data.get('followup_days', 0))
+    pjson   = json.dumps(data.get('personalization', {}))
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     if data.get('id'):
-        c.execute("UPDATE campaigns SET name=?, service=?, subject=?, body=? WHERE id=?",
-            (data['name'], data['service'], data['subject'], data['body'], data['id']))
+        c.execute("""UPDATE campaigns
+                     SET name=?, service=?, subject=?, body=?,
+                         template_type=?, template_name=?, followup_days=?, personalization_json=?
+                     WHERE id=?""",
+            (data['name'], data['service'], data['subject'], data['body'],
+             ttype, tname, fdays, pjson, data['id']))
     else:
-        c.execute("INSERT INTO campaigns (name, service, subject, body) VALUES (?,?,?,?)",
-            (data['name'], data['service'], data['subject'], data['body']))
+        c.execute("""INSERT INTO campaigns
+            (name, service, subject, body, template_type, template_name, followup_days, personalization_json)
+            VALUES (?,?,?,?,?,?,?,?)""",
+            (data['name'], data['service'], data['subject'], data['body'],
+             ttype, tname, fdays, pjson))
         data['id'] = c.lastrowid
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'id': data['id']})
+
+@app.route('/api/email-templates')
+def get_email_templates():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute("SELECT * FROM email_templates ORDER BY id").fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/api/email-templates/<name>')
+def get_email_template(name):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM email_templates WHERE name=?", (name,)).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(dict(row))
+
+@app.route('/api/email-templates/save', methods=['POST'])
+def save_email_template():
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""INSERT OR REPLACE INTO email_templates
+        (name, display_name, template_type, subject, body) VALUES (?,?,?,?,?)""",
+        (data['name'], data.get('display_name',''), data.get('template_type','plain_text'),
+         data['subject'], data['body']))
+    conn.commit(); conn.close()
+    return jsonify({'success': True})
 
 @app.route('/api/campaigns/delete/<int:cid>', methods=['DELETE'])
 def delete_campaign(cid):
@@ -935,7 +1120,7 @@ def _send_emails_worker(lead_ids, campaign_id, mode='manual'):
         service_final = (campaign_service or '').strip() or (service or '').strip()
         sending_status['current'] = email
         subject = _personalize_text(subject_tmpl, biz_name, service_final, s.get('sender_name', ''))
-        body = _personalize_text(body_tmpl, biz_name, service_final, s.get('sender_name', ''))
+        body = _append_social_links_footer(_personalize_text(body_tmpl, biz_name, service_final, s.get('sender_name', '')))
         try:
             _send_one_email(s, email, subject, body, s.get('sender_name',''))
             c.execute("UPDATE leads SET status='emailed' WHERE id=?", (lid,))
@@ -1260,7 +1445,7 @@ def log_detail(log_id):
             sender_name = get_setting('sender_name') or 'Your Agency'
             service_final = (service_needed or '').strip() or (cr[2] or '').strip()
             subject = subject or _personalize_text(cr[0] or '', biz_name, service_final, sender_name)
-            body = body or _personalize_text(cr[1] or '', biz_name, service_final, sender_name)
+            body = body or _append_social_links_footer(_personalize_text(cr[1] or '', biz_name, service_final, sender_name))
 
     conn.close()
     return jsonify({
@@ -1384,9 +1569,57 @@ def whatsapp_open():
     message = data.get('message', '') or 'Hi'
     if not phone:
         return jsonify({'success': False, 'error': 'phone required'}), 400
-    wa_url = f"https://wa.me/{phone}?text={quote_plus(message)}"
-    webbrowser.open(wa_url)
-    return jsonify({'success': True, 'url': wa_url})
+    app_url = f"whatsapp://send?phone={phone}&text={quote_plus(message)}"
+    web_url = f"https://wa.me/{phone}?text={quote_plus(message)}"
+    opened = _open_whatsapp_url(app_url, web_url)
+    return jsonify({'success': opened, 'app_url': app_url, 'web_url': web_url})
+
+def _open_whatsapp_url(app_url, web_url=''):
+    # Reliable opener for Windows desktop sessions.
+    try:
+        if os.name == 'nt':
+            try:
+                os.startfile(app_url)  # type: ignore[attr-defined]
+                return True
+            except Exception:
+                if web_url:
+                    os.startfile(web_url)  # type: ignore[attr-defined]
+                    return True
+                return False
+        opened = webbrowser.open(app_url)
+        if (not opened) and web_url:
+            opened = webbrowser.open(web_url)
+        return bool(opened)
+    except Exception:
+        return False
+
+@app.route('/api/whatsapp/open-bulk', methods=['POST'])
+def whatsapp_open_bulk():
+    data = request.json or {}
+    items = data.get('items', [])
+    delay_ms = max(300, min(int(data.get('delay_ms') or 900), 5000))
+    if not isinstance(items, list) or not items:
+        return jsonify({'success': False, 'error': 'items required'}), 400
+
+    opened = 0
+    failed = 0
+    for item in items:
+        try:
+            phone = re.sub(r'[^0-9]', '', (item or {}).get('phone', '') or '')
+            message = (item or {}).get('message', '') or 'Hi'
+            if not phone:
+                failed += 1
+                continue
+            app_url = f"whatsapp://send?phone={phone}&text={quote_plus(message)}"
+            web_url = f"https://wa.me/{phone}?text={quote_plus(message)}"
+            if _open_whatsapp_url(app_url, web_url):
+                opened += 1
+            else:
+                failed += 1
+            time.sleep(delay_ms / 1000.0)
+        except Exception:
+            failed += 1
+    return jsonify({'success': True, 'opened': opened, 'failed': failed, 'total': len(items)})
 
 # ─── EMAIL TEMPLATES ────────────────────────────────────────────────────────────
 EMAIL_TEMPLATES = {
@@ -1542,12 +1775,17 @@ gmb_jobs = {}  # job_id -> { process, logs, status, city, country, category }
 def gmb_scraper_page():
     return render_template('gmb_scraper.html')
 
+@app.route('/whatsapp')
+def whatsapp_page():
+    return render_template('whatsapp.html')
+
 @app.route('/api/gmb/start', methods=['POST'])
 def gmb_start():
     data = request.json or {}
     city     = (data.get('city')     or 'Auckland').strip()
     country  = (data.get('country')  or 'New Zealand').strip()
     category = (data.get('category') or 'restaurant').strip()
+    service  = (data.get('service_needed') or 'Website Development').strip()
     limit    = max(1, min(int(data.get('limit') or 20), 300))
 
     # Only one job at a time
@@ -1572,7 +1810,7 @@ def gmb_start():
 
     gmb_jobs[job_id] = {
         'process': proc, 'logs': [], 'status': 'running',
-        'city': city, 'country': country, 'category': category, 'limit': limit,
+        'city': city, 'country': country, 'category': category, 'limit': limit, 'service_needed': service,
     }
 
     def _read_output():
@@ -1612,6 +1850,17 @@ def gmb_status(job_id):
             except Exception:
                 pass
 
+    # Service-based view filter at backend level:
+    # Website/App services -> no_website only
+    # SEO/Marketing services -> poor_seo only
+    service = (job.get('service_needed') or '').lower()
+    seo_keys = ['seo', 'google ads', 'ppc', 'marketing', 'social media', 'content marketing', 'email marketing', 'gmb optimization', 'local seo']
+    web_keys = ['website', 'wordpress', 'landing page', 'e-commerce', 'mobile app']
+    if any(k in service for k in seo_keys):
+        leads = [l for l in leads if (l.get('lead_type') or '').lower() == 'poor_seo']
+    elif any(k in service for k in web_keys):
+        leads = [l for l in leads if (l.get('lead_type') or 'no_website').lower() != 'poor_seo']
+
     return jsonify({'success': True, 'status': job['status'], 'new_logs': new_logs, 'leads': leads})
 
 @app.route('/api/gmb/stop', methods=['POST'])
@@ -1631,6 +1880,11 @@ def gmb_import():
     leads_list   = data.get('leads', [])
     service      = (data.get('service_needed') or 'Website Development').strip()
     inserted     = 0
+    inserted_with_email = 0
+    inserted_without_email = 0
+    duplicate_email = 0
+    duplicate_no_email = 0
+    invalid_email = 0
     conn = sqlite3.connect(DB_PATH)
     c    = conn.cursor()
     for lead in leads_list:
@@ -1640,7 +1894,10 @@ def gmb_import():
             phone_match = re.search(r'[\+\d][\d\s\-().]{5,}', raw_phone)
             phone = phone_match.group(0).strip() if phone_match else re.sub(r'[^\d\s+\-(). ]', '', raw_phone).strip()
             website_url = lead.get('website_url') or ''
-            email_v = _normalize_email(lead.get('email',''))
+            raw_email = lead.get('email', '')
+            email_v = _normalize_email(raw_email)
+            if (raw_email or '').strip() and not email_v:
+                invalid_email += 1
             lead_type   = lead.get('lead_type') or 'no_website'
             seo_score   = lead.get('seo_score', '')
             seo_issues  = lead.get('seo_issues') or ''
@@ -1656,6 +1913,10 @@ def gmb_import():
                     notes_parts.append(f"SEO Issues: {seo_issues}")
             notes = ' | '.join(notes_parts)
             if email_v:
+                c.execute("SELECT id FROM leads WHERE lower(email)=lower(?) LIMIT 1", (email_v,))
+                if c.fetchone():
+                    duplicate_email += 1
+                    continue
                 c.execute(
                     '''INSERT OR IGNORE INTO leads
                        (business_name, email, phone, website, location, service_needed, source, notes)
@@ -1665,6 +1926,7 @@ def gmb_import():
                 )
                 if c.rowcount:
                     inserted += 1
+                    inserted_with_email += 1
             else:
                 # For no-email leads, dedupe by business + phone + website + source.
                 c.execute("""SELECT id FROM leads
@@ -1680,11 +1942,22 @@ def gmb_import():
                     )
                     if c.rowcount:
                         inserted += 1
+                        inserted_without_email += 1
+                else:
+                    duplicate_no_email += 1
         except Exception:
             pass
     conn.commit()
     conn.close()
-    return jsonify({'success': True, 'inserted': inserted})
+    return jsonify({
+        'success': True,
+        'inserted': inserted,
+        'inserted_with_email': inserted_with_email,
+        'inserted_without_email': inserted_without_email,
+        'duplicate_email': duplicate_email,
+        'duplicate_no_email': duplicate_no_email,
+        'invalid_email': invalid_email
+    })
 
 @app.route('/api/gmb/publish-sheets', methods=['POST'])
 def gmb_publish_sheets():
@@ -1727,6 +2000,883 @@ def gmb_publish_sheets():
 def gmb_get_sheets_webhook():
     return jsonify({'webhook_url': get_setting('gmb_sheets_webhook') or ''})
 
+
+# ─── LINKEDIN AUTOMATION ──────────────────────────────────────────────────────
+
+_li_sessions = {}   # key -> {session, csrf, member_id, logged_in}
+_li_login_status = {'step': '', 'done': False, 'error': ''}
+_HAS_LI_API = False  # linkedin-api package not used anymore (using Selenium instead)
+
+def _li_set_step(msg):
+    _li_login_status['step'] = msg
+    logging.info(f'[LinkedIn] {msg}')
+
+def _li_login(email, password):
+    """Login to LinkedIn using a VISIBLE Chrome browser window (user can watch + solve CAPTCHA)."""
+    if not email or not password:
+        return None, 'Email aur password dono required hain.'
+    _li_login_status.update({'step': 'Starting browser...', 'done': False, 'error': ''})
+    driver = None
+    try:
+        _li_set_step('Chrome browser open ho raha hai...')
+        driver = _make_chrome_driver()
+
+        _li_set_step('LinkedIn login page khol raha hai...')
+        driver.get('https://www.linkedin.com/login')
+        time.sleep(4)
+
+        # Use JS to fill form — avoids ChromeDriver 146 find_element crash
+        _li_set_step('Typing email address...')
+        driver.execute_script("""
+        var e = document.getElementById('username') || document.querySelector('input[name="session_key"]');
+        if(e){ e.value=arguments[0]; e.dispatchEvent(new Event('input',{bubbles:true})); e.dispatchEvent(new Event('change',{bubbles:true})); }
+        """, email)
+        time.sleep(0.5)
+
+        _li_set_step("Typing password...")
+        driver.execute_script("""
+        var e = document.getElementById('password') || document.querySelector('input[name="session_password"]');
+        if(e){ e.value=arguments[0]; e.dispatchEvent(new Event('input',{bubbles:true})); e.dispatchEvent(new Event('change',{bubbles:true})); }
+        """, password)
+        time.sleep(0.5)
+
+        _li_set_step('Clicking login button...')
+        driver.execute_script("""
+        var btn = document.querySelector('button[type="submit"]') || document.querySelector('.sign-in-form__submit-btn');
+        if(btn) btn.click();
+        """)
+
+        _li_set_step('Login ho raha hai... (agar CAPTCHA aaye to manually solve karo)')
+        # Wait for feed or verify page — up to 60s so user can solve CAPTCHA if needed
+        for _ in range(60):
+            cur = driver.current_url
+            if 'feed' in cur or 'mynetwork' in cur or 'jobs' in cur or 'messaging' in cur:
+                break
+            if 'challenge' in cur or 'checkpoint' in cur or 'captcha' in cur:
+                _li_set_step('CAPTCHA/Challenge detected — please solve it in the browser window!')
+            time.sleep(1)
+
+        cur = driver.current_url
+        if 'feed' not in cur and 'mynetwork' not in cur and 'jobs' not in cur:
+            driver.quit()
+            return None, 'Login nahi hua. Browser mein manually login karo phir dobara try karo.'
+
+        _li_set_step('Login successful! Extracting session cookies...')
+        selenium_cookies = driver.get_cookies()
+        li_at = ''
+        jsessionid = ''
+        for c in selenium_cookies:
+            if c['name'] == 'li_at':
+                li_at = c['value']
+            if c['name'] == 'JSESSIONID':
+                jsessionid = c['value'].strip('"')
+
+        driver.quit()
+
+        if not li_at:
+            return None, 'Login hua but li_at cookie nahi mili. Please try again.'
+
+        # Build requests session with extracted cookies
+        import requests as _req
+        sess = _req.Session()
+        sess.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        sess.cookies.set('li_at', li_at, domain='.linkedin.com')
+        sess.cookies.set('JSESSIONID', f'"{jsessionid}"', domain='.linkedin.com')
+
+        info = {'session': sess, 'csrf': jsessionid, 'li_at': li_at,
+                'member_id': '', 'logged_in': True, 'email': email}
+        _li_sessions[email] = info
+        _li_sessions['__cookie__'] = info
+
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("INSERT OR REPLACE INTO settings(key,value) VALUES('linkedin_email',?)", (email,))
+        conn.execute("INSERT OR REPLACE INTO settings(key,value) VALUES('linkedin_password',?)", (password,))
+        conn.execute("INSERT OR REPLACE INTO settings(key,value) VALUES('linkedin_li_at',?)", (li_at,))
+        conn.commit(); conn.close()
+
+        _li_login_status.update({'step': 'Done!', 'done': True, 'error': ''})
+        return info, None
+
+    except Exception as e:
+        if driver:
+            try: driver.quit()
+            except Exception: pass
+        err = str(e)
+        _li_login_status.update({'step': '', 'done': False, 'error': err})
+        return None, err
+
+def _li_get_session(email='', password=''):
+    """Get cached session. Auto-rebuilds from saved credentials or cookie."""
+    # 1. Try in-memory cache
+    for key in [email, '__cookie__']:
+        if key and key in _li_sessions and _li_sessions[key].get('logged_in'):
+            return _li_sessions[key], None
+    s = get_all_settings()
+    saved_email = email or s.get('linkedin_email', '')
+    saved_pass  = password or s.get('linkedin_password', '')
+    saved_li_at = s.get('linkedin_li_at', '')
+    # 2. Re-login with credentials if li_at not available
+    # (Selenium login is interactive so we skip auto re-login here)
+    # 3. Rebuild from saved li_at cookie
+    if saved_li_at:
+        try:
+            import requests as _req
+            sess = _req.Session()
+            sess.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+            sess.cookies.set('li_at', saved_li_at, domain='.linkedin.com')
+            sess.get('https://www.linkedin.com/feed/', timeout=12)
+            jsessionid = sess.cookies.get('JSESSIONID', '').strip('"')
+            info = {'session': sess, 'csrf': jsessionid, 'li_at': saved_li_at,
+                    'member_id': '', 'logged_in': True, 'email': saved_email}
+            _li_sessions['__cookie__'] = info
+            return info, None
+        except Exception as e:
+            return None, str(e)
+    return None, 'LinkedIn connected nahi hai. Pehle login karo.'
+
+def _li_headers(info):
+    return {
+        'csrf-token': info['csrf'],
+        'X-Restli-Protocol-Version': '2.0.0',
+        'X-Li-Lang': 'en_US',
+        'Accept': 'application/vnd.linkedin.normalized+json+2.1',
+        'X-Li-Track': '{"clientVersion":"1.13.1","mpVersion":"1.13.1","osName":"web","timezoneOffset":5.5,"deviceFormFactor":"DESKTOP","mpName":"voyager-web"}',
+    }
+
+def _li_parse_graphql_results(data):
+    """Parse LinkedIn GraphQL search response into our result format."""
+    results = []
+    try:
+        clusters = (data.get('data', {})
+                    .get('searchDashClustersByAll', {})
+                    .get('elements', []))
+        for cluster in clusters:
+            for item_wrap in cluster.get('items', []):
+                entity = item_wrap.get('item', {}).get('entityResult', {})
+                if not entity:
+                    continue
+                name = entity.get('title', {}).get('text', '') if isinstance(entity.get('title'), dict) else ''
+                subtitle = entity.get('primarySubtitle', {}).get('text', '') if isinstance(entity.get('primarySubtitle'), dict) else ''
+                summary = entity.get('summary', {}).get('text', '') if isinstance(entity.get('summary'), dict) else ''
+                nav_url = entity.get('navigationUrl', '') or ''
+                actor_url = entity.get('actorNavigationUrl', '') or ''
+                tracking_urn = entity.get('trackingUrn', '') or ''
+                profile_url = actor_url if actor_url.startswith('http') else (
+                    'https://www.linkedin.com' + actor_url if actor_url.startswith('/') else '')
+                post_url = nav_url if 'feed/update' in str(nav_url) else (
+                    f'https://www.linkedin.com/feed/update/{tracking_urn}/' if tracking_urn else '')
+                email_f, phone_f = _extract_email_phone_from_text(summary)
+                results.append({
+                    'platform': 'linkedin', 'author': name, 'subtitle': subtitle,
+                    'profile_url': profile_url, 'post_text': (summary or '')[:600],
+                    'post_url': post_url, 'post_urn': tracking_urn,
+                    'email': email_f, 'phone': phone_f,
+                })
+    except Exception:
+        pass
+    return results
+
+def _li_parse_blended_results(data):
+    """Parse LinkedIn old blended search response."""
+    results = []
+    try:
+        elements = data.get('data', {}).get('elements', [])
+        for elem in elements:
+            hit = elem.get('hitInfo', {})
+            content = hit.get('com.linkedin.voyager.search.SearchContent', {})
+            if not content:
+                continue
+            actor = content.get('actor', {})
+            name = actor['name'].get('text', '') if isinstance(actor.get('name'), dict) else ''
+            subtitle = actor['subDescription'].get('text', '') if isinstance(actor.get('subDescription'), dict) else ''
+            nav = actor.get('navigationUrl', '') if isinstance(actor, dict) else ''
+            profile_url = ('https://www.linkedin.com' + nav) if str(nav).startswith('/') else (nav or '')
+            commentary = ''
+            comm = content.get('commentary', {})
+            if isinstance(comm, dict):
+                txt = comm.get('text', {})
+                commentary = txt.get('text', '') if isinstance(txt, dict) else str(txt or '')
+            entity_urn = content.get('entityUrn', '')
+            post_url = f'https://www.linkedin.com/feed/update/{entity_urn}/' if entity_urn else ''
+            email_f, phone_f = _extract_email_phone_from_text(commentary)
+            results.append({
+                'platform': 'linkedin', 'author': name, 'subtitle': subtitle,
+                'profile_url': profile_url, 'post_text': (commentary or '')[:600],
+                'post_url': post_url, 'post_urn': entity_urn,
+                'email': email_f, 'phone': phone_f,
+            })
+    except Exception:
+        pass
+    return results
+
+_li_scan_status = {'step': '', 'done': False, 'error': ''}
+_li_scan_results_store = {'results': [], 'count': 0, 'commented': 0, 'auto_saved': 0, 'error': None}
+
+def _make_chrome_driver():
+    """Create a visible Chrome WebDriver compatible with Chrome 115+."""
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from webdriver_manager.chrome import ChromeDriverManager
+    import tempfile
+
+    opts = webdriver.ChromeOptions()
+    opts.add_argument('--start-maximized')
+    opts.add_argument('--no-sandbox')
+    opts.add_argument('--disable-dev-shm-usage')
+    opts.add_argument('--disable-gpu')
+    opts.add_argument('--disable-extensions')
+    opts.add_argument('--disable-infobars')
+    opts.add_argument('--disable-blink-features=AutomationControlled')
+    opts.add_argument('--log-level=3')
+    # Fresh temp profile — avoids user's extensions/flags causing GetHandleVerifier crash
+    tmp_profile = tempfile.mkdtemp(prefix='chrome_leadpro_')
+    opts.add_argument(f'--user-data-dir={tmp_profile}')
+    opts.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')
+    # NO experimental options — they cause GetHandleVerifier crash on Chrome 115+
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=opts)
+    driver.execute_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined})")
+    return driver
+
+# ─── INSTAGRAM AUTOMATION ──────────────────────────────────────────────────────
+_ig_login_status = {'step': '', 'done': False, 'error': ''}
+_ig_dm_status    = {'step': '', 'done': False, 'error': '', 'sent': 0, 'total': 0}
+_ig_client       = None   # instagrapi Client instance
+
+def _ig_set_step(msg, status_dict):
+    status_dict['step'] = msg
+    logging.info(f'[Instagram] {msg}')
+
+def _ig_login(email, password):
+    global _ig_client
+    _ig_login_status.update({'step': 'Connecting to Instagram...', 'done': False, 'error': ''})
+    try:
+        from instagrapi import Client
+        from instagrapi.exceptions import LoginRequired, TwoFactorRequired, ChallengeRequired, BadPassword
+
+        cl = Client()
+        cl.delay_range = [2, 5]
+
+        # Try loading saved session first
+        session_file = os.path.join(os.path.dirname(DB_PATH), f'ig_session_{email}.json')
+        session_loaded = False
+        if os.path.exists(session_file):
+            _ig_set_step('Loading saved session...', _ig_login_status)
+            try:
+                cl.load_settings(session_file)
+                cl.login(email, password)
+                session_loaded = True
+            except Exception:
+                session_loaded = False
+
+        if not session_loaded:
+            _ig_set_step('Logging in to Instagram...', _ig_login_status)
+            try:
+                cl.login(email, password)
+            except TwoFactorRequired:
+                _ig_login_status.update({'step': '2FA required — check your phone/email for the code.', 'done': False, 'error': '2FA_REQUIRED'})
+                return
+            except ChallengeRequired:
+                _ig_login_status.update({'step': 'Instagram requires verification. Try again in a few minutes.', 'done': False, 'error': 'CHALLENGE_REQUIRED'})
+                return
+            except BadPassword:
+                _ig_login_status.update({'step': '', 'done': False, 'error': 'Wrong username or password.'})
+                return
+
+        # Save session for future use
+        cl.dump_settings(session_file)
+        set_setting('ig_email', email)
+
+        _ig_client = cl
+        _ig_login_status.update({'step': f'Connected! Logged in as @{cl.username}', 'done': True, 'error': ''})
+
+    except Exception as e:
+        err = str(e)
+        logging.error(f'[Instagram Login] {err}')
+        _ig_login_status.update({'step': '', 'done': False, 'error': err})
+
+
+
+def _ig_dm_campaign(niche_kw, message_tpl, max_count, delay_sec):
+    """Find niche profiles without a website and send them a DM via instagrapi."""
+    global _ig_client
+    _ig_dm_status.update({'step': 'Starting DM campaign...', 'done': False,
+                          'error': '', 'sent': 0, 'total': 0})
+    try:
+        from instagrapi import Client
+        from instagrapi.exceptions import LoginRequired
+
+        cl = _ig_client
+        if cl is None:
+            # Try reloading from saved session
+            email = get_setting('ig_email') or ''
+            session_file = os.path.join(os.path.dirname(DB_PATH), f'ig_session_{email}.json')
+            if email and os.path.exists(session_file):
+                cl = Client()
+                cl.load_settings(session_file)
+                _ig_client = cl
+            else:
+                _ig_dm_status.update({'done': True, 'error': 'Please login to Instagram first.'})
+                return
+
+        tag = niche_kw.strip().lstrip('#').replace(' ', '')
+        _ig_set_step(f'Searching hashtag #{tag} for profiles...', _ig_dm_status)
+
+        # Get recent medias from hashtag
+        try:
+            medias = cl.hashtag_medias_recent(tag, amount=50)
+        except LoginRequired:
+            _ig_dm_status.update({'done': True, 'error': 'Session expired. Please login again.'})
+            return
+
+        # Collect unique usernames from media owners
+        seen = set()
+        usernames = []
+        for m in medias:
+            try:
+                uname = m.user.username
+                if uname and uname not in seen:
+                    seen.add(uname)
+                    usernames.append(uname)
+            except Exception:
+                continue
+
+        _ig_dm_status['total'] = len(usernames)
+        _ig_set_step(f'Found {len(usernames)} profiles. Checking bios...', _ig_dm_status)
+
+        sent_count = 0
+        for uname in usernames:
+            if sent_count >= max_count:
+                break
+            try:
+                _ig_set_step(f'Checking @{uname} ({sent_count}/{max_count} sent)...', _ig_dm_status)
+                user_info = cl.user_info_by_username(uname)
+
+                # Skip if they already have a website
+                if user_info.external_url:
+                    _ig_set_step(f'@{uname} has a website — skipping.', _ig_dm_status)
+                    time.sleep(1)
+                    continue
+
+                # Build personalised message
+                name_display = (user_info.full_name or uname).strip() or uname
+                msg_text = (message_tpl
+                            .replace('{name}', name_display)
+                            .replace('{username}', f'@{uname}')
+                            .replace('{niche}', niche_kw))
+
+                _ig_set_step(f'Sending DM to @{uname}...', _ig_dm_status)
+                user_id = user_info.pk
+                cl.direct_send(msg_text, user_ids=[user_id])
+
+                sent_count += 1
+                _ig_dm_status['sent'] = sent_count
+                _ig_set_step(f'{sent_count}/{max_count} DMs sent. Last: @{uname}', _ig_dm_status)
+
+                # Save to social_leads
+                try:
+                    conn = sqlite3.connect(DB_PATH)
+                    conn.execute('''INSERT OR IGNORE INTO social_leads
+                        (platform,author,profile_url,post_text,status) VALUES (?,?,?,?,?)''',
+                        ('instagram', uname,
+                         f'https://www.instagram.com/{uname}/',
+                         f'DM sent | Niche: {niche_kw} | No website in bio',
+                         'messaged'))
+                    conn.commit(); conn.close()
+                except Exception:
+                    pass
+
+                # Polite delay (anti-ban)
+                wait = delay_sec + random.uniform(3, 8)
+                _ig_set_step(f'Waiting {int(wait)}s before next DM...', _ig_dm_status)
+                time.sleep(wait)
+
+            except Exception as ex:
+                logging.info(f'[Instagram DM] Error for @{uname}: {ex}')
+                time.sleep(3)
+                continue
+
+        _ig_dm_status.update({
+            'step': f'Done! {sent_count} DMs sent successfully.',
+            'done': True, 'sent': sent_count
+        })
+
+    except Exception as e:
+        err = str(e)
+        logging.error(f'[Instagram DM] {err}')
+        _ig_dm_status.update({'step': '', 'done': True, 'error': err})
+
+
+def _li_set_scan_step(msg):
+    _li_scan_status['step'] = msg
+    logging.info(f'[LinkedIn Scan] {msg}')
+
+def _li_search_posts(info, keywords, count=25):
+    """Search LinkedIn posts using VISIBLE Chrome browser — user can see everything."""
+    _li_scan_status.update({'step': 'Browser shuru ho raha hai...', 'done': False, 'error': ''})
+    results = []
+    driver = None
+    li_at = info.get('li_at', '') or get_setting('linkedin_li_at')
+
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.chrome.service import Service
+        from webdriver_manager.chrome import ChromeDriverManager
+
+        _li_set_scan_step('Chrome browser khul raha hai...')
+        driver = _make_chrome_driver()
+
+        # Set login cookie
+        _li_set_scan_step('LinkedIn session load ho raha hai...')
+        driver.get('https://www.linkedin.com')
+        time.sleep(2)
+        driver.add_cookie({'name': 'li_at', 'value': li_at, 'domain': '.linkedin.com', 'path': '/'})
+
+        # Search each keyword, collect posts
+        keyword_list = [k.strip() for k in keywords.split(',') if k.strip()]
+        seen_keys = set()
+
+        for kw in keyword_list[:4]:   # max 4 keywords per scan
+            if len(results) >= count:
+                break
+            _li_set_scan_step(f'Searching: "{kw}"...')
+            kw_enc = quote_plus(kw)
+            driver.get(f'https://www.linkedin.com/search/results/content/?keywords={kw_enc}&sortBy=date_posted&origin=GLOBAL_SEARCH_HEADER')
+            time.sleep(4)
+
+            # Check if still logged in
+            if 'authwall' in driver.current_url or 'login' in driver.current_url:
+                driver.quit()
+                _li_scan_status.update({'step': '', 'done': False, 'error': 'Session expire ho gayi.'})
+                return [], 'Session expire ho gayi. Dobara "Login to LinkedIn" click karo.'
+
+            _li_set_scan_step(f'Posts load ho rahe hain: "{kw}"...')
+            # Slow scroll — LinkedIn uses virtual list, scrolling to bottom removes top items
+            # Capture page_source AFTER each scroll batch to get all items
+            for scroll_i in range(4):
+                driver.execute_script(f'window.scrollBy(0, {800 * (scroll_i + 1)})')
+                time.sleep(2)
+
+            _li_set_scan_step(f'Posts parse kar raha hai: "{kw}"...')
+
+            # ── Parse page_source with BeautifulSoup using role="listitem" ────
+            # (LinkedIn uses virtual DOM — page_source captures items JS cannot)
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            containers = soup.select('[role="listitem"]')
+
+            # Fallback to any older selectors
+            if not containers:
+                containers = (
+                    soup.select('li.reusable-search__result-container') or
+                    soup.select('[data-urn*="activity"]') or
+                    []
+                )
+
+            logging.info(f'[LinkedIn] kw="{kw}" containers found: {len(containers)}')
+
+            # Save debug HTML if nothing found
+            if not containers:
+                debug_path = os.path.join('data', 'li_debug.html')
+                try:
+                    with open(debug_path, 'w', encoding='utf-8') as f:
+                        f.write(driver.page_source)
+                    logging.info(f'[LinkedIn] Debug HTML saved to {debug_path}')
+                except Exception:
+                    pass
+
+            for container in containers:
+                if len(results) >= count:
+                    break
+                try:
+                    full_text = container.get_text(separator='\n', strip=True)
+
+                    # Strip "Feed post" prefix LinkedIn SSR adds
+                    full_text = re.sub(r'^Feed post\s*', '', full_text, flags=re.IGNORECASE)
+
+                    lines = [l.strip() for l in full_text.split('\n') if l.strip()]
+
+                    # ── Author + profile URL ──────────────────────────────────
+                    link_el = container.find('a', href=lambda h: h and ('/in/' in h or '/company/' in h))
+                    profile_url = ''
+                    if link_el:
+                        href = link_el.get('href', '')
+                        profile_url = href.split('?')[0]
+                        if not profile_url.startswith('http'):
+                            profile_url = 'https://www.linkedin.com' + profile_url
+
+                    # Author = first non-empty line (or link text)
+                    name = ''
+                    if link_el:
+                        name = link_el.get_text(strip=True).split('\n')[0].strip()
+                    if not name and lines:
+                        name = lines[0]
+
+                    # ── Post text ─────────────────────────────────────────────
+                    # Everything after "Follow" line (skips actor block)
+                    post_text = full_text
+                    follow_idx = full_text.find('\nFollow\n')
+                    if follow_idx == -1:
+                        follow_idx = full_text.find(' Follow ')
+                    if follow_idx != -1:
+                        post_text = full_text[follow_idx + 7:].strip()
+                    # Remove trailing engagement noise
+                    post_text = re.sub(r'\s*\d[\d,]*\s*(reactions?|comments?|reposts?|likes?|shares?).*$',
+                                       '', post_text, flags=re.IGNORECASE | re.DOTALL).strip()
+
+                    # Subtitle = second line before "Follow"
+                    subtitle = lines[1] if len(lines) > 1 else ''
+
+                    dedup_key = (profile_url or name) + post_text[:60]
+                    if dedup_key in seen_keys or not name:
+                        continue
+                    seen_keys.add(dedup_key)
+
+                    email_f, phone_f = _extract_email_phone_from_text(post_text)
+                    results.append({
+                        'platform': 'linkedin',
+                        'author': name,
+                        'subtitle': subtitle,
+                        'profile_url': profile_url,
+                        'post_text': post_text[:600],
+                        'post_url': profile_url,
+                        'post_urn': '',
+                        'email': email_f,
+                        'phone': phone_f,
+                    })
+                except Exception as ex:
+                    logging.info(f'[LinkedIn] parse error: {ex}')
+                    continue
+
+            time.sleep(random.uniform(2, 3))
+
+        # Save fresh cookies
+        try:
+            for ck in driver.get_cookies():
+                if ck['name'] == 'JSESSIONID':
+                    info['csrf'] = ck['value'].strip('"')
+                if ck['name'] == 'li_at':
+                    info['li_at'] = ck['value']
+        except Exception:
+            pass
+
+        driver.quit()
+        _li_set_scan_step(f'Done! {len(results)} posts mile.')
+        _li_scan_status['done'] = True
+        return results, (None if results else 'Koi post nahi mila. Keywords change karo ya dobara try karo.')
+
+    except Exception as e:
+        if driver:
+            try: driver.quit()
+            except Exception: pass
+        err = str(e)
+        _li_scan_status.update({'step': '', 'done': False, 'error': err})
+        return [], err
+
+def _li_post_comment(info, post_urn, comment_text):
+    """Post a comment on a LinkedIn post via Voyager API."""
+    try:
+        sess = info['session']
+        member_id = info.get('member_id', '')
+        payload = {
+            'actor': f'urn:li:fsd_profile:{member_id}' if member_id else '',
+            'message': {'attributes': [], 'text': comment_text}
+        }
+        enc_urn = quote_plus(post_urn)
+        url = f'https://www.linkedin.com/voyager/api/socialActions/{enc_urn}/comments'
+        hdrs = _li_headers(info)
+        hdrs['Content-Type'] = 'application/json'
+        r = sess.post(url, json=payload, headers=hdrs, timeout=18)
+        return r.status_code in [200, 201], r.text
+    except Exception as e:
+        return False, str(e)
+
+def _li_build_comment(template, name, keywords):
+    service = (keywords or '').split(',')[0].strip() or 'your requirement'
+    first_name = (name or 'there').split()[0]
+    return template.replace('{name}', first_name).replace('{service}', service)
+
+def _linkedin_monitor_loop():
+    """Background thread: periodically scan LinkedIn and auto-comment."""
+    while True:
+        try:
+            s = get_all_settings()
+            if s.get('linkedin_auto_monitor', '0') == '1':
+                email = s.get('linkedin_email', '')
+                password = s.get('linkedin_password', '')
+                keywords = s.get('social_keywords', '')
+                template = s.get('linkedin_comment_template', '')
+                do_comment = s.get('linkedin_comment_auto', '0') == '1'
+                if email and password and keywords:
+                    info, err = _li_get_session(email, password)
+                    if not err and info:
+                        results, _ = _li_search_posts(info, keywords)
+                        conn = sqlite3.connect(DB_PATH)
+                        c = conn.cursor()
+                        for r in results:
+                            post_url = r.get('post_url', '')
+                            post_urn = r.get('post_urn', '')
+                            name = r.get('author', '')
+                            comment = _li_build_comment(template, name, keywords)
+                            # skip if already seen
+                            c.execute("SELECT id,commented FROM social_leads WHERE post_url=?", (post_url,))
+                            row = c.fetchone()
+                            commented = 0
+                            if do_comment and post_urn and not row:
+                                ok, _ = _li_post_comment(info, post_urn, comment)
+                                if ok:
+                                    commented = 1
+                                time.sleep(random.uniform(12, 25))
+                            if not row:
+                                c.execute("""INSERT OR IGNORE INTO social_leads
+                                    (platform,author,subtitle,profile_url,post_text,post_url,post_urn,
+                                     email,phone,reply_draft,status,commented,found_on)
+                                    VALUES (?,?,?,?,?,?,?,?,?,?,'new',?,datetime('now','localtime'))""",
+                                    ('linkedin', name, r.get('subtitle',''), r.get('profile_url',''),
+                                     r.get('post_text',''), post_url, post_urn,
+                                     r.get('email',''), r.get('phone',''), comment, commented))
+                                # auto-save if contact found
+                                if r.get('email') or r.get('phone'):
+                                    try:
+                                        c.execute("""INSERT OR IGNORE INTO leads
+                                            (business_name,email,phone,source,status,notes,added_on)
+                                            VALUES (?,?,?,'linkedin','new',?,datetime('now','localtime'))""",
+                                            (name, r.get('email',''), r.get('phone',''), post_url))
+                                    except Exception:
+                                        pass
+                        conn.commit()
+                        conn.close()
+        except Exception as e:
+            logging.warning(f'LinkedIn monitor error: {e}')
+        interval = _safe_int(get_setting('linkedin_monitor_interval'), 30)
+        time.sleep(interval * 60)
+
+@app.route('/api/social/linkedin/login-status')
+def api_linkedin_login_status():
+    return jsonify(_li_login_status)
+
+@app.route('/api/social/linkedin/scan-status')
+def api_linkedin_scan_status():
+    resp = dict(_li_scan_status)
+    if resp.get('done'):
+        resp.update(_li_scan_results_store)
+    return jsonify(resp)
+
+@app.route('/api/social/linkedin/login', methods=['POST'])
+def api_linkedin_login():
+    data = request.json or {}
+    email    = (data.get('email') or '').strip()
+    password = (data.get('password') or '').strip()
+    li_at_val = (data.get('li_at') or '').strip().strip('"').strip("'")
+
+    # ── Option A: email + password (visible Chrome browser) ───────────────────
+    if email and password:
+        _li_login_status.update({'step': 'Initializing...', 'done': False, 'error': ''})
+        def _do_login():
+            _li_login(email, password)
+        threading.Thread(target=_do_login, daemon=True).start()
+        return jsonify({'success': True, 'async': True,
+                        'message': 'Browser khul raha hai! Status check karte raho.'})
+
+    # ── Option B: li_at cookie paste ──────────────────────────────────────────
+    if li_at_val:
+        try:
+            import requests as _req
+            sess = _req.Session()
+            sess.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+            sess.cookies.set('li_at', li_at_val, domain='.linkedin.com')
+            sess.get('https://www.linkedin.com/feed/', timeout=12)
+            jsessionid = sess.cookies.get('JSESSIONID', '').strip('"')
+            me_r = sess.get('https://www.linkedin.com/voyager/api/me',
+                            headers={'csrf-token': jsessionid,
+                                     'X-Restli-Protocol-Version': '2.0.0',
+                                     'Accept': 'application/vnd.linkedin.normalized+json+2.1'},
+                            timeout=10)
+            if me_r.status_code == 401:
+                return jsonify({'success': False, 'error': 'Cookie invalid ya expired. Browser se fresh li_at copy karo.'})
+            member_id = ''
+            display_email = ''
+            if me_r.status_code == 200:
+                for item in me_r.json().get('included', []):
+                    urn = item.get('entityUrn', '')
+                    if 'miniProfile' in urn or 'fsd_profile' in urn:
+                        member_id = urn.split(':')[-1]
+            info = {'session': sess, 'csrf': jsessionid, 'li_at': li_at_val,
+                    'member_id': member_id, 'logged_in': True, 'email': display_email}
+            _li_sessions['__cookie__'] = info
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute("INSERT OR REPLACE INTO settings(key,value) VALUES('linkedin_li_at',?)", (li_at_val,))
+            conn.commit(); conn.close()
+            return jsonify({'success': True, 'email': display_email, 'member_id': member_id})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
+
+    return jsonify({'success': False, 'error': 'Email+password ya li_at cookie required hai.'})
+
+@app.route('/api/social/linkedin/scan-comment', methods=['POST'])
+def api_linkedin_scan_comment():
+    data = request.json or {}
+    keywords = (data.get('keywords') or '').strip()
+    do_comment = data.get('auto_comment', False)
+    comment_tpl = (data.get('comment_template') or '').strip()
+    s = get_all_settings()
+    email = s.get('linkedin_email', '')
+    password = s.get('linkedin_password', '')
+    if not email or not password:
+        return jsonify({'success': False, 'error': 'LinkedIn credentials not set. Please login first.'})
+    info, err = _li_get_session(email, password)
+    if err:
+        return jsonify({'success': False, 'error': err})
+    if not keywords:
+        keywords = s.get('social_keywords', 'need website')
+    if comment_tpl:
+        conn2 = sqlite3.connect(DB_PATH)
+        conn2.execute("INSERT OR REPLACE INTO settings(key,value) VALUES('linkedin_comment_template',?)", (comment_tpl,))
+        conn2.commit(); conn2.close()
+    else:
+        comment_tpl = s.get('linkedin_comment_template', '')
+
+    def _do_scan():
+        results, scan_err = _li_search_posts(info, keywords)
+        commented_count = 0
+        auto_saved = 0
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        for r in results:
+            post_urn = r.get('post_urn', '')
+            post_url = r.get('post_url', '')
+            name = r.get('author', '')
+            comment = _li_build_comment(comment_tpl, name, keywords)
+            r['reply_draft'] = comment
+            commented = 0
+            if do_comment and post_urn:
+                c.execute("SELECT id FROM social_leads WHERE post_url=? AND commented=1", (post_url,))
+                if not c.fetchone():
+                    ok, _ = _li_post_comment(info, post_urn, comment)
+                    if ok:
+                        commented = 1
+                        commented_count += 1
+                    time.sleep(random.uniform(8, 18))
+            r['commented'] = bool(commented)
+            try:
+                c.execute("""INSERT OR IGNORE INTO social_leads
+                    (platform,author,subtitle,profile_url,post_text,post_url,post_urn,
+                     email,phone,reply_draft,status,commented,found_on)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,'new',?,datetime('now','localtime'))""",
+                    ('linkedin', name, r.get('subtitle',''), r.get('profile_url',''),
+                     r.get('post_text',''), post_url, post_urn,
+                     r.get('email',''), r.get('phone',''), comment, commented))
+            except Exception:
+                pass
+            if r.get('email') or r.get('phone'):
+                try:
+                    c.execute("""INSERT OR IGNORE INTO leads
+                        (business_name,email,phone,source,status,notes,added_on)
+                        VALUES (?,?,?,'linkedin','new',?,datetime('now','localtime'))""",
+                        (name, r.get('email',''), r.get('phone',''), post_url))
+                    if c.rowcount:
+                        auto_saved += 1
+                except Exception:
+                    pass
+        conn.commit(); conn.close()
+        _li_scan_results_store.update({'results': results, 'count': len(results),
+                                       'commented': commented_count, 'auto_saved': auto_saved,
+                                       'error': scan_err})
+
+    _li_scan_results_store.update({'results': [], 'count': 0, 'commented': 0, 'auto_saved': 0, 'error': None})
+    threading.Thread(target=_do_scan, daemon=True).start()
+    return jsonify({'success': True, 'async': True})
+
+@app.route('/api/social/linkedin/settings', methods=['POST'])
+def api_linkedin_settings():
+    data = request.json or {}
+    conn = sqlite3.connect(DB_PATH)
+    for key in ['linkedin_auto_monitor', 'linkedin_monitor_interval',
+                 'linkedin_comment_auto', 'linkedin_comment_template', 'social_keywords']:
+        if key in data:
+            conn.execute("INSERT OR REPLACE INTO settings(key,value) VALUES(?,?)", (key, str(data[key])))
+    conn.commit(); conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/social/linkedin/status')
+def api_linkedin_status():
+    s = get_all_settings()
+    email = s.get('linkedin_email', '')
+    logged_in = (('__cookie__' in _li_sessions and _li_sessions['__cookie__'].get('logged_in', False))
+                 or (email and email in _li_sessions and _li_sessions[email].get('logged_in', False))
+                 or bool(s.get('linkedin_li_at', '')))
+    return jsonify({
+        'logged_in': logged_in,
+        'email': email,
+        'auto_monitor': s.get('linkedin_auto_monitor', '0') == '1',
+        'auto_comment': s.get('linkedin_comment_auto', '0') == '1',
+        'monitor_interval': s.get('linkedin_monitor_interval', '30'),
+        'comment_template': s.get('linkedin_comment_template', ''),
+    })
+
+
+# ─── INSTAGRAM ROUTES ────────────────────────────────────────────────────────
+
+@app.route('/api/social/instagram/login', methods=['POST'])
+def ig_login_route():
+    data = request.get_json() or {}
+    email    = data.get('email', '').strip()
+    password = data.get('password', '').strip()
+    if not email or not password:
+        return jsonify({'success': False, 'error': 'Username and password are required.'})
+    _ig_login_status.update({'step': 'Starting...', 'done': False, 'error': ''})
+    threading.Thread(target=_ig_login, args=(email, password), daemon=True).start()
+    return jsonify({'success': True})
+
+@app.route('/api/social/instagram/login-status')
+def ig_login_status():
+    return jsonify(_ig_login_status)
+
+@app.route('/api/social/instagram/status')
+def ig_status():
+    connected = _ig_client is not None
+    email = get_setting('ig_email') or ''
+    username = ''
+    if connected:
+        try:
+            username = _ig_client.username or ''
+        except Exception:
+            pass
+    return jsonify({'connected': connected, 'email': email, 'username': username})
+
+@app.route('/api/social/instagram/dm', methods=['POST'])
+def ig_dm_route():
+    data = request.get_json() or {}
+    niche     = data.get('niche', '').strip()
+    msg_tpl   = data.get('message', '').strip()
+    max_count = int(data.get('max_count', 10))
+    delay_sec = int(data.get('delay', 30))
+    if not niche or not msg_tpl:
+        return jsonify({'success': False, 'error': 'Niche aur message template required hain.'})
+    _ig_dm_status.update({'step': 'Starting...', 'done': False, 'error': '', 'sent': 0, 'total': 0})
+    threading.Thread(target=_ig_dm_campaign,
+                     args=(niche, msg_tpl, max_count, delay_sec), daemon=True).start()
+    return jsonify({'success': True})
+
+@app.route('/api/social/instagram/dm-status')
+def ig_dm_status():
+    return jsonify(_ig_dm_status)
+
+@app.route('/api/social/instagram/logout', methods=['POST'])
+def ig_logout_route():
+    global _ig_client
+    try:
+        if _ig_client:
+            _ig_client.logout()
+    except Exception:
+        pass
+    _ig_client = None
+    email = get_setting('ig_email') or ''
+    session_file = os.path.join(os.path.dirname(DB_PATH), f'ig_session_{email}.json')
+    if os.path.exists(session_file):
+        try: os.remove(session_file)
+        except Exception: pass
+    return jsonify({'success': True})
 
 # ─── SOCIAL LEADS ROUTES ──────────────────────────────────────────────────────
 
@@ -2145,6 +3295,68 @@ def _scan_instagram(keywords):
         error = str(e)
     return results, error
 
+def _scan_ddg_web(keywords, site_filters=None, platform='web'):
+    results = []
+    error = None
+    try:
+        q = keywords
+        if site_filters:
+            q = f"{keywords} " + " OR ".join([f"site:{s}" for s in site_filters])
+        r = requests.get(
+            f'https://html.duckduckgo.com/html/?q={quote_plus(q)}',
+            headers={'User-Agent': 'Mozilla/5.0'},
+            timeout=15
+        )
+        soup = BeautifulSoup(r.text, 'html.parser')
+        items = soup.select('.result')
+        for item in items[:25]:
+            a = item.select_one('.result__a')
+            sn = item.select_one('.result__snippet')
+            if not a:
+                continue
+            href = (a.get('href') or '').strip()
+            title = (a.get_text(' ', strip=True) or '').strip()
+            snippet = (sn.get_text(' ', strip=True) if sn else '').strip()
+            if 'duckduckgo.com/l/?' in href and 'uddg=' in href:
+                try:
+                    qd = parse_qs(urlparse(href).query)
+                    href = unquote((qd.get('uddg', [''])[0] or '').strip())
+                except Exception:
+                    pass
+            email, phone = _extract_email_phone_from_text(snippet)
+            results.append({
+                'platform': platform,
+                'author': title[:140] or 'Lead',
+                'subtitle': urlparse(href).netloc if href else '',
+                'profile_url': href,
+                'post_text': snippet[:600],
+                'post_url': href,
+                'email': email,
+                'phone': phone,
+            })
+        if not results:
+            error = 'No matching public posts found for this keyword.'
+    except Exception as e:
+        error = str(e)
+    return results, error
+
+def _scan_reddit(keywords):
+    return _scan_ddg_web(keywords, ['reddit.com'], 'reddit')
+
+def _scan_jobboards(keywords):
+    return _scan_ddg_web(
+        keywords,
+        ['upwork.com', 'fiverr.com', 'freelancer.com', 'guru.com', 'indeed.com', 'linkedin.com/jobs'],
+        'jobboard'
+    )
+
+def _scan_directories(keywords):
+    return _scan_ddg_web(
+        keywords,
+        ['yelp.com', 'yellowpages.com', 'clutch.co', 'justdial.com', 'bing.com/maps', 'google.com/maps'],
+        'directory'
+    )
+
 def _save_social_results(results):
     settings = get_all_settings()
     auto_save = settings.get('social_auto_save', '1') == '1'
@@ -2205,7 +3417,10 @@ def social_page():
     conn.close()
     return render_template('social.html',
         leads=leads,
+        initial_platform=(request.args.get('platform') or '').strip().lower(),
         li_at=s.get('linkedin_li_at', ''),
+        li_email=s.get('linkedin_email', ''),
+        li_comment_tpl=s.get('linkedin_comment_template', ''),
         social_keywords=s.get('social_keywords', 'need website,website development,need SEO'),
         social_auto_save=s.get('social_auto_save', '1'),
         brand_primary=s.get('brand_primary', '#2563eb'),
@@ -2241,6 +3456,12 @@ def api_social_scan():
         results, error = _scan_facebook(keywords)
     elif platform == 'instagram':
         results, error = _scan_instagram(keywords)
+    elif platform == 'reddit':
+        results, error = _scan_reddit(keywords)
+    elif platform == 'jobboard':
+        results, error = _scan_jobboards(keywords)
+    elif platform == 'directory':
+        results, error = _scan_directories(keywords)
     save_stats = _save_social_results(results)
     return jsonify({'success': True, 'results': results, 'error': _sanitize_social_error(error),
                     'count': len(results), 'saved': save_stats.get('saved', 0),
@@ -2551,7 +3772,8 @@ if __name__ == '__main__':
     threading.Thread(target=_auto_sender_loop, daemon=True).start()
     threading.Thread(target=_inbox_sync_loop, daemon=True).start()
     threading.Thread(target=_opencrawl_loop, daemon=True).start()
-    print("\n🚀 LeadPro is running at: http://localhost:5000\n")
+    threading.Thread(target=_linkedin_monitor_loop, daemon=True).start()
+    print("\nLeadPro is running at: http://localhost:5000\n")
     app.run(debug=False, host='0.0.0.0', port=5000, use_reloader=False)
 
 

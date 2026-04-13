@@ -46,6 +46,22 @@ function sanitizeFilename(str) {
   return str.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
 }
 
+function collectEmailsFromText(text) {
+  if (!text) return [];
+  const decoded = String(text)
+    .replace(/\s*\[at\]\s*/gi, '@')
+    .replace(/\s*\(at\)\s*/gi, '@')
+    .replace(/\s+at\s+/gi, '@')
+    .replace(/\s*\[dot\]\s*/gi, '.')
+    .replace(/\s*\(dot\)\s*/gi, '.')
+    .replace(/\s+dot\s+/gi, '.');
+  const matches = decoded.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) || [];
+  const cleaned = matches
+    .map((e) => e.toLowerCase().trim().replace(/^[<>"'(\[]+|[<>"')\].,;:!?]+$/g, ''))
+    .filter((e) => e && !e.includes('example') && !e.includes('@2x') && !e.includes('sentry'));
+  return [...new Set(cleaned)];
+}
+
 // ─── SEO Checker ─────────────────────────────────────────────────────────────
 async function checkWebsiteSEO(page, websiteUrl) {
   const w = config.seo.weights;
@@ -107,10 +123,8 @@ async function checkWebsiteSEO(page, websiteUrl) {
     if (!websiteEmail) {
       try {
         const bodyText = await page.innerText('body').catch(() => '');
-        const m = bodyText.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-        if (m && !m[0].includes('example') && !m[0].includes('@2x') && !m[0].includes('sentry')) {
-          websiteEmail = m[0];
-        }
+        const emails = collectEmailsFromText(bodyText);
+        if (emails.length) websiteEmail = emails[0];
       } catch(_) {}
     }
 
@@ -212,11 +226,32 @@ async function extractBusinessDetails(page, gmbUrl, cityArg, countryArg, categor
       if (catEl) details.category = (await catEl.innerText()).trim();
     } catch (_) {}
 
-    // Email — Google Maps rarely shows email; scan description text
+    // Email — Google Maps rarely shows email; try mailto + page text (including obfuscated patterns)
     try {
-      const pageText = await page.innerText('body');
-      const emailMatch = pageText.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
-      if (emailMatch) details.email = emailMatch[0];
+      let candidates = [];
+
+      // 1) any visible mailto links
+      try {
+        const mailtos = await page.$$eval('a[href^="mailto:"]', (els) =>
+          els.map((el) => (el.getAttribute('href') || '').replace(/^mailto:/i, '').split('?')[0].trim())
+        );
+        candidates.push(...mailtos);
+      } catch (_) {}
+
+      // 2) full panel text
+      const pageText = await page.innerText('body').catch(() => '');
+      candidates.push(...collectEmailsFromText(pageText));
+
+      // 3) aria-labels and button text often contain contact details in Maps
+      try {
+        const labels = await page.$$eval('[aria-label]', (els) =>
+          els.map((el) => el.getAttribute('aria-label') || '')
+        );
+        candidates.push(...collectEmailsFromText(labels.join(' | ')));
+      } catch (_) {}
+
+      const finalEmails = collectEmailsFromText(candidates.join(' | '));
+      if (finalEmails.length) details.email = finalEmails[0];
     } catch (_) {}
   } catch (err) {
     log(`Error extracting details: ${err.message}`, 'WARN');

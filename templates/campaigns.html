@@ -88,6 +88,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font)}
     <a href="/gmb-scraper" class="nav-item"><span class="icon">🗺️</span> GMB Scraper</a>
     <a href="/campaigns" class="nav-item active"><span class="icon">📧</span> Campaigns <span class="status-dot"></span></a>
     <a href="/social" class="nav-item"><span class="icon">💼</span> LinkedIn/Social</a>
+    <a href="/social?platform=reddit" class="nav-item"><span class="icon">👽</span> Reddit Leads</a>
+    <a href="/social?platform=jobboard" class="nav-item"><span class="icon">💼</span> Job Boards</a>
+    <a href="/social?platform=directory" class="nav-item"><span class="icon">📒</span> Directories</a>
     <a href="/logs" class="nav-item"><span class="icon">📋</span> Email Logs</a>
     <a href="/settings" class="nav-item"><span class="icon">⚙️</span> Settings</a>
   </div>
@@ -114,39 +117,90 @@ body{background:var(--bg);color:var(--text);font-family:var(--font)}
       <div class="card">
         <div class="section-title" id="editor-title">New Campaign</div>
 
-        <div style="margin-bottom:14px">
-          <div class="section-title" style="margin-bottom:8px">Quick Templates</div>
-          <div style="margin-bottom:10px">
-            <button class="btn btn-secondary btn-sm" onclick="loadPremiumTemplate()">Load Solvinex Premium Template</button>
+        <!-- Template Type Selector -->
+        <div style="margin-bottom:16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;">
+          <div class="form-label" style="margin-bottom:10px;">Email Type</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px;border-radius:8px;border:1px solid var(--border);transition:border-color .15s;" id="type-plain-label">
+              <input type="radio" name="template_type" value="plain_text" id="type-plain" onchange="onTypeChange()" style="margin-top:2px;accent-color:var(--accent);">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);">Plain Text — Cold Outreach</div>
+                <div style="font-size:11px;color:var(--muted);">High deliverability, no spam filters. Use for first contact.</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px;border-radius:8px;border:1px solid rgba(0,255,136,0.4);background:rgba(0,255,136,0.04);" id="type-html-label">
+              <input type="radio" name="template_type" value="html" id="type-html" onchange="onTypeChange()" checked style="margin-top:2px;accent-color:var(--accent);">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);">HTML — Warm Proposal</div>
+                <div style="font-size:11px;color:var(--muted);">Branded email for leads who replied "YES". Includes mockup offer.</div>
+              </div>
+            </label>
           </div>
-          <div class="form-note">Logo/colors/font are taken from Settings -> Brand Assets.</div>
+        </div>
+
+        <!-- Plain text template picker (shown only for plain_text type) -->
+        <div id="plain-template-picker" style="display:none;margin-bottom:14px;">
+          <label class="form-label">Choose Cold Email Template</label>
+          <select class="form-input" id="plain-template-select" onchange="loadPlainTemplate(this.value)" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:var(--font);font-size:13px;">
+            <option value="">— select template —</option>
+          </select>
+        </div>
+
+        <!-- HTML quick load (shown only for html type) -->
+        <div id="html-template-picker" style="margin-bottom:14px;">
+          <div class="form-note" style="margin-bottom:6px;">Logo/colors/font from Settings → Brand Assets.</div>
+          <button class="btn btn-secondary btn-sm" onclick="loadPremiumTemplate()">Load Warm Proposal Template</button>
           <div class="template-pills" id="template-pills"></div>
         </div>
 
         <input type="hidden" id="edit-id">
         <div class="form-group">
           <label class="form-label">Campaign Name</label>
-          <input type="text" class="form-input" id="edit-name" placeholder="e.g. Solvinex Outreach - Delhi">
+          <input type="text" class="form-input" id="edit-name" placeholder="e.g. Cold Outreach — Auckland Bakeries">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="service-group">
           <label class="form-label">Services (multi-select)</label>
           <div class="service-grid" id="service-grid"></div>
         </div>
         <div class="form-group">
-          <label class="form-label">Subject Line ({business} = business name)</label>
-          <input type="text" class="form-input" id="edit-subject" placeholder="Growth proposal for {business}">
+          <label class="form-label" id="subject-label">Subject Line</label>
+          <input type="text" class="form-input" id="edit-subject" placeholder="Quick question about {{business_name}}">
         </div>
         <div class="form-group">
-          <label class="form-label">Email Body (HTML placeholders: {business}, {service}, {sender_name})</label>
-          <textarea class="form-textarea" id="edit-body" rows="8" placeholder="<h2>Hi {business},</h2><p>...</p>"></textarea>
+          <label class="form-label" id="body-label">Email Body</label>
+          <textarea class="form-textarea" id="edit-body" rows="8" placeholder="Hi {{business_name}}..."></textarea>
         </div>
+
+        <!-- Personalization Preview -->
+        <div id="personalization-section" style="margin-bottom:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="form-label" style="margin-bottom:0;">Preview with Real Data</div>
+            <button class="btn btn-secondary btn-sm" onclick="togglePersonalizationPreview()">Show Preview</button>
+          </div>
+          <div id="personalization-inputs" style="display:none;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div><label class="form-label">Business Name</label><input class="form-input" id="prev-business" placeholder="Joe's Cafe" style="width:100%;"></div>
+              <div><label class="form-label">Location</label><input class="form-input" id="prev-location" placeholder="Auckland" style="width:100%;"></div>
+              <div><label class="form-label">Industry</label><input class="form-input" id="prev-industry" placeholder="Restaurant" style="width:100%;"></div>
+              <div><label class="form-label">Review Count</label><input class="form-input" id="prev-reviews" placeholder="47" style="width:100%;"></div>
+              <div><label class="form-label">Sender Name</label><input class="form-input" id="prev-sender" placeholder="Sandeep" style="width:100%;"></div>
+              <div><label class="form-label">Sender Email</label><input class="form-input" id="prev-email" placeholder="hi@solvinex.com" style="width:100%;"></div>
+            </div>
+            <button class="btn btn-secondary btn-sm btn-full" onclick="renderPersonalizedPreview()">Render Preview</button>
+          </div>
+          <div id="personalized-preview-output" style="margin-top:10px;display:none;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">SUBJECT: <span id="prev-subject-out" style="color:var(--text);font-weight:600;"></span></div>
+            <div id="prev-body-out" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;white-space:pre-wrap;color:var(--text);max-height:260px;overflow-y:auto;"></div>
+          </div>
+        </div>
+
         <div id="preview-wrap" style="display:none">
-          <label class="form-label">Preview</label>
+          <label class="form-label">HTML Preview</label>
           <div class="html-preview" id="html-preview"></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:8px">
           <button class="btn btn-primary btn-full" onclick="saveCampaign()">Save Campaign</button>
-          <button class="btn btn-secondary btn-sm" onclick="togglePreview()">Preview</button>
+          <button class="btn btn-secondary btn-sm" onclick="togglePreview()" id="preview-btn">HTML Preview</button>
           <button class="btn btn-secondary btn-sm" onclick="newCampaign()">Reset</button>
         </div>
       </div>
@@ -185,12 +239,69 @@ function showToast(msg, type='success') {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
+function ensureSocialIconFooter(html) {
+  let body = html || '';
+  const normalizeAnchors = [
+    {
+      rx: /<a\b([^>]*?)href=["']https?:\/\/(?:www\.)?instagram\.com\/solvinex_com\/?["']([^>]*)>[\s\S]*?<\/a>/ig,
+      anchor: '<a href="https://www.instagram.com/solvinex_com/" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">Instagram</a>'
+    },
+    {
+      rx: /<a\b([^>]*?)href=["']https?:\/\/(?:www\.)?x\.com\/solvinex_com\/?["']([^>]*)>[\s\S]*?<\/a>/ig,
+      anchor: '<a href="https://x.com/solvinex_com" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">X</a>'
+    },
+    {
+      rx: /<a\b([^>]*?)href=["']https?:\/\/(?:www\.)?linkedin\.com\/company\/solvinex\/?["']([^>]*)>[\s\S]*?<\/a>/ig,
+      anchor: '<a href="https://www.linkedin.com/company/solvinex" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">LinkedIn</a>'
+    },
+    {
+      rx: /<a\b([^>]*?)href=["']https?:\/\/(?:www\.)?facebook\.com\/solvinex\/?["']([^>]*)>[\s\S]*?<\/a>/ig,
+      anchor: '<a href="https://www.facebook.com/solvinex/" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">Facebook</a>'
+    }
+  ];
+  normalizeAnchors.forEach(item => {
+    body = body.replace(item.rx, item.anchor);
+  });
+
+  const hasAnySocial =
+    body.includes('instagram.com/solvinex_com') ||
+    body.includes('x.com/solvinex_com') ||
+    body.includes('linkedin.com/company/solvinex') ||
+    body.includes('facebook.com/solvinex');
+  if (hasAnySocial) return body;
+
+  const socialRow = `
+<p style="margin:0 0 10px;font-size:13px;color:#64748b;">
+  <a href="https://www.instagram.com/solvinex_com/" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">Instagram</a>
+  <a href="https://x.com/solvinex_com" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">X</a>
+  <a href="https://www.linkedin.com/company/solvinex" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">LinkedIn</a>
+  <a href="https://www.facebook.com/solvinex/" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">Facebook</a>
+</p>`;
+
+  // Robust replacement: match copyright paragraph even if style/spacing changes.
+  const withCopyrightReplace = body.replace(
+    /<p[^>]*>\s*(?:\(c\)|©)\s*2026\s*Solvinex\.?\s*All rights reserved\.?\s*<\/p>/i,
+    `${socialRow}\n            <p style="margin:0;font-size:12px;color:#94a3b8;">(c) 2026 Solvinex. All rights reserved.</p>`
+  );
+  if (withCopyrightReplace !== body) return withCopyrightReplace;
+
+  // Important: insert before </body> for full HTML templates (appending after </html> won't render).
+  if (/<\/body>/i.test(body)) {
+    return body.replace(/<\/body>/i, `${socialRow}\n</body>`);
+  }
+  return body + socialRow;
+}
+
 function renderBrandTemplate(html, serviceText='Website Development') {
+  const ensured = ensureSocialIconFooter(html || '');
   const fontGoogle = (BRAND.font || 'Inter').trim().replace(/\s+/g, '+');
-  return (html || '')
+  return ensured
     .replace(/{business}/g, 'Sample Business')
     .replace(/{service}/g, serviceText)
+    .replace(/{industry}/g, serviceText.split(',')[0].trim() || 'Restaurant')
+    .replace(/{review_count}/g, '47')
     .replace(/{sender_name}/g, 'Solvinex Team')
+    .replace(/{sender_email}/g, 'hi@solvinex.com')
     .replace(/{logo_white_url}/g, BRAND.logoWhite)
     .replace(/{logo_color_url}/g, BRAND.logoColor)
     .replace(/{brand_primary}/g, BRAND.primary)
@@ -251,8 +362,8 @@ function loadPremiumTemplate() {
   if (!getSelectedServices().length) {
     setSelectedServices('Website Development, SEO (Search Engine Optimization), Branding & Graphic Design');
   }
-  document.getElementById('edit-name').value = 'Solvinex Premium Outreach Template';
-  document.getElementById('edit-subject').value = 'Solvinex growth proposal for {business}';
+  document.getElementById('edit-name').value = 'Warm Proposal — Website Mockup Offer';
+  document.getElementById('edit-subject').value = 'Free website mockup for {business}';
   document.getElementById('edit-body').value = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -284,9 +395,9 @@ body { margin: 0; padding: 0; background-color: #f4f8fb; font-family: '{brand_fo
         <tr>
           <td align="center">
             <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom: 30px;"><img src="{logo_white_url}" alt="Solvinex" width="180" style="display:block; max-width:180px;"></td></tr></table>
-            <span style="display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 30px; color: #bfdbfe; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 20px;">Exclusive Digital Growth Plan</span>
-            <h1 style="margin: 0 0 20px; font-size: 40px; line-height: 1.18; font-weight: 800; color: #ffffff; letter-spacing: -1px;">Your Custom Digital<br>Growth Blueprint</h1>
-            <p style="margin: 0; font-size: 17px; line-height: 1.75; color: #e2e8f0; max-width: 620px; margin-left: auto; margin-right: auto;">We combine premium design, high-performance development, and AI-powered growth systems to turn your digital presence into a predictable lead engine.</p>
+            <span style="display: inline-block; padding: 6px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 30px; color: #bfdbfe; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 20px;">Website Missing?</span>
+            <h1 style="margin: 0 0 20px; font-size: 40px; line-height: 1.18; font-weight: 800; color: #ffffff; letter-spacing: -1px;">Get Online<br>in 7 Days</h1>
+            <p style="margin: 0; font-size: 17px; line-height: 1.75; color: #e2e8f0; max-width: 620px; margin-left: auto; margin-right: auto;">No website = invisible to customers searching online. We build fast, affordable websites for local {industry} businesses.</p>
           </td>
         </tr>
       </table>
@@ -300,74 +411,38 @@ body { margin: 0; padding: 0; background-color: #f4f8fb; font-family: '{brand_fo
       <table class="container" cellpadding="0" cellspacing="0" border="0" style="background: #ffffff; border-radius: 16px; box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08); margin-top: -40px; position: relative; z-index: 10;">
         <tr>
           <td style="padding: 40px;" class="mobile-padding">
-            <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.7; color: #475569;">Hi <strong>{business}</strong>,<br><br>In today's fast-paced digital landscape, your online presence should work as your strongest 24/7 sales system.</p>
-            <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.7; color: #475569;">We reviewed your digital footprint and identified major growth opportunities across: <strong>{service}</strong>.</p>
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-left: 4px solid {brand_primary}; border-radius: 0 8px 8px 0;"><tr><td style="padding: 20px;"><p style="margin: 0; font-size: 15px; color: #1e293b; line-height: 1.6;"><strong>The Solvinex Advantage:</strong> our frameworks regularly deliver <span style="color: {brand_primary}; font-weight: 700;">2x to 3x improvement in qualified leads</span> within 90 days.</p></td></tr></table>
+            <p style="margin: 0 0 18px; font-size: 16px; line-height: 1.7; color: #475569;">Hi <strong>{business}</strong>,<br><br>Noticed you on Google Maps - great {review_count} reviews! But one problem: <strong>no website.</strong></p>
+            <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.7; color: #475569;">Here's what you're missing without a website:</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-left: 4px solid {brand_primary}; border-radius: 0 8px 8px 0;"><tr><td style="padding: 20px;"><p style="margin: 0; font-size: 15px; color: #1e293b; line-height: 1.6;"><strong style="color:{brand_primary};">70% of customers</strong> search online BEFORE visiting. Without a website, you're losing them to competitors who <em>do</em> have one.</p></td></tr></table>
           </td>
         </tr>
 
         <tr>
           <td style="padding: 10px 40px 30px;" class="mobile-padding">
-            <h2 style="margin: 0 0 22px; font-size: 22px; font-weight: 800; color: #0f172a; text-align: center;">Our Proposed Solutions</h2>
+            <h2 style="margin: 0 0 22px; font-size: 22px; font-weight: 800; color: #0f172a; text-align: center;">What's Included in Your Website</h2>
             <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:10px;">
               <tr>
                 <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
                   <p style="margin:0 0 8px;font-size:18px;">🌐</p>
                   <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Website Development</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Fast, modern websites that convert visitors into qualified leads.</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Fast, modern website live in 7 days — designed to turn visitors into paying customers.</p>
                 </td>
                 <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
                   <p style="margin:0 0 8px;font-size:18px;">🔍</p>
                   <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">SEO Optimization</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Higher Google rankings with targeted keywords and organic traffic growth.</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Show up on Google when people search "{industry} near me" — free organic traffic 24/7.</p>
                 </td>
               </tr>
               <tr>
-                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
-                  <p style="margin:0 0 8px;font-size:18px;">🎨</p>
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Logo Design</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Professional logos crafted to make your brand memorable and premium.</p>
-                </td>
                 <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
                   <p style="margin:0 0 8px;font-size:18px;">📱</p>
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Social Media Management</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Consistent, high-performing social content that drives awareness and enquiries.</p>
-                </td>
-              </tr>
-              <tr>
-                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
-                  <p style="margin:0 0 8px;font-size:18px;">📲</p>
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">App Development</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Reliable mobile apps for Android and iOS with smooth user journeys.</p>
-                </td>
-                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
-                  <p style="margin:0 0 8px;font-size:18px;">🛒</p>
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">E-commerce Solutions</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Sales-focused online stores designed for higher conversion and repeat orders.</p>
-                </td>
-              </tr>
-              <tr>
-                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
-                  <p style="margin:0 0 8px;font-size:18px;">🧩</p>
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">UI/UX Design</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Beautiful, intuitive interfaces that keep users engaged and ready to convert.</p>
-                </td>
-                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
-                  <p style="margin:0 0 8px;font-size:18px;">✨</p>
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Branding & Graphic Design</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Strong brand identity systems that build trust across every touchpoint.</p>
-                </td>
-              </tr>
-              <tr>
-                <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
-                  <p style="margin:0 0 8px;font-size:18px;">⚙️</p>
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">CMS Development</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Easy content management so your team can update pages without coding.</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Mobile-Friendly Design</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">85% of searches happen on phones. Your site will look perfect on every screen size.</p>
                 </td>
                 <td width="50%" valign="top" style="background:#ffffff;border:1px solid #dbe7ff;border-radius:12px;padding:16px;">
                   <p style="margin:0 0 8px;font-size:18px;">🛡️</p>
-                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Website Maintenance</p>
-                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Continuous support, updates, and security for stable long-term growth.</p>
+                  <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#0f172a;">Free 3-Month Support</p>
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">Updates, edits, and fixes included free for 3 months — no hidden costs or surprises.</p>
                 </td>
               </tr>
             </table>
@@ -376,9 +451,9 @@ body { margin: 0; padding: 0; background-color: #f4f8fb; font-family: '{brand_fo
 
         <tr>
           <td align="center" style="padding: 10px 40px 50px;" class="mobile-padding">
-            <h3 style="margin: 0 0 10px; font-size: 20px; font-weight: 800; color: #0f172a;">Ready to grow faster?</h3>
-            <p style="margin: 0 0 24px; font-size: 15px; color: #64748b; max-width: 430px;">Reply directly and we will share a practical growth blueprint for {business} by email.</p>
-            <a href="https://solvinex.com/contact" style="background: linear-gradient(135deg, {brand_primary} 0%, {brand_secondary} 100%); color: #ffffff; font-size: 16px; font-weight: 700; text-decoration: none; padding: 16px 40px; border-radius: 50px; display: inline-block; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);">Get Free Growth Plan on Email</a>
+            <h3 style="margin: 0 0 10px; font-size: 20px; font-weight: 800; color: #0f172a;">Want to See Your Site?</h3>
+            <p style="margin: 0 0 24px; font-size: 15px; color: #64748b; max-width: 430px;">Reply 'YES' and we'll send a free mockup of {business}'s website — no commitment, no credit card.</p>
+            <a href="mailto:{sender_email}?subject=YES - Free Mockup for {business}" style="background: linear-gradient(135deg, {brand_primary} 0%, {brand_secondary} 100%); color: #ffffff; font-size: 16px; font-weight: 700; text-decoration: none; padding: 16px 40px; border-radius: 50px; display: inline-block; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);">Get Free Website Mockup</a>
           </td>
         </tr>
 
@@ -406,6 +481,12 @@ body { margin: 0; padding: 0; background-color: #f4f8fb; font-family: '{brand_fo
         <tr>
           <td align="center">
             <img src="{logo_color_url}" alt="Solvinex Logo" width="120" style="opacity: 0.95; margin-bottom: 12px;">
+            <p style="margin:0 0 10px;font-size:13px;color:#64748b;">
+              <a href="https://www.instagram.com/solvinex_com/" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">Instagram</a>
+              <a href="https://x.com/solvinex_com" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">X</a>
+              <a href="https://www.linkedin.com/company/solvinex" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">LinkedIn</a>
+              <a href="https://www.facebook.com/solvinex/" style="display:inline-block;padding:6px 12px;border:1px solid #bfdbfe;border-radius:999px;color:#1d4ed8;text-decoration:none;margin:0 6px 8px 0;font-weight:600;font-size:12px;">Facebook</a>
+            </p>
             <p style="margin:0;font-size:12px;color:#94a3b8;">(c) 2026 Solvinex. All rights reserved.</p>
           </td>
         </tr>
@@ -454,7 +535,8 @@ async function loadCampaigns() {
 
   if (camps.length) {
     const first = camps[0];
-    updateLiveTemplatePreview(first.name, first.subject, first.body, first.service);
+    const ensuredFirstBody = ensureSocialIconFooter(first.body || '');
+    updateLiveTemplatePreview(first.name, first.subject, ensuredFirstBody, first.service);
   }
 }
 
@@ -467,8 +549,9 @@ function editCampaign(id, name, service, subject) {
   fetch('/api/campaigns-list').then(r => r.json()).then(camps => {
     const c = camps.find(x => x.id == id);
     if (!c) return;
-    document.getElementById('edit-body').value = c.body || '';
-    updateLiveTemplatePreview(c.name, c.subject, c.body, decodeURIComponent(service || ''));
+    const ensuredBody = ensureSocialIconFooter(c.body || '');
+    document.getElementById('edit-body').value = ensuredBody;
+    updateLiveTemplatePreview(c.name, c.subject, ensuredBody, decodeURIComponent(service || ''));
   });
 }
 
@@ -484,14 +567,106 @@ function newCampaign() {
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
 }
 
+// ── Template type switching ───────────────────────────────────────────────────
+let COLD_TEMPLATES = [];
+
+async function loadColdTemplates() {
+  try {
+    const r = await fetch('/api/email-templates');
+    COLD_TEMPLATES = await r.json();
+    const sel = document.getElementById('plain-template-select');
+    sel.innerHTML = '<option value="">— select template —</option>';
+    COLD_TEMPLATES.filter(t => t.template_type === 'plain_text').forEach(t => {
+      sel.innerHTML += `<option value="${t.name}">${t.display_name}</option>`;
+    });
+  } catch(e) {}
+}
+
+function onTypeChange() {
+  const isPlain = document.getElementById('type-plain').checked;
+  document.getElementById('plain-template-picker').style.display = isPlain ? 'block' : 'none';
+  document.getElementById('html-template-picker').style.display  = isPlain ? 'none'  : 'block';
+  document.getElementById('preview-btn').style.display           = isPlain ? 'none'  : '';
+  document.getElementById('service-group').style.display         = isPlain ? 'none'  : '';
+  document.getElementById('subject-label').textContent = isPlain
+    ? 'Subject Line (variables: {{business_name}}, {{location}}, {{industry}}, {{sender_name}})'
+    : 'Subject Line ({business} = business name)';
+  document.getElementById('body-label').textContent = isPlain
+    ? 'Plain Text Body (variables: {{business_name}}, {{location}}, {{industry}}, {{sender_name}})'
+    : 'Email Body (HTML — {business}, {service}, {sender_name})';
+  // Update radio label borders
+  document.getElementById('type-plain-label').style.borderColor = isPlain ? 'rgba(0,255,136,0.4)' : 'var(--border)';
+  document.getElementById('type-plain-label').style.background  = isPlain ? 'rgba(0,255,136,0.04)' : '';
+  document.getElementById('type-html-label').style.borderColor  = isPlain ? 'var(--border)' : 'rgba(0,255,136,0.4)';
+  document.getElementById('type-html-label').style.background   = isPlain ? '' : 'rgba(0,255,136,0.04)';
+}
+
+function loadPlainTemplate(name) {
+  if (!name) return;
+  const tpl = COLD_TEMPLATES.find(t => t.name === name);
+  if (!tpl) return;
+  document.getElementById('edit-subject').value = tpl.subject;
+  document.getElementById('edit-body').value    = tpl.body;
+  showToast('Template loaded: ' + tpl.display_name);
+}
+
+// ── Personalization preview ───────────────────────────────────────────────────
+function togglePersonalizationPreview() {
+  const el = document.getElementById('personalization-inputs');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function applyVars(text, vars) {
+  return text
+    .replace(/\{\{business_name\}\}|\{business\}/gi, vars.business)
+    .replace(/\{\{location\}\}/gi, vars.location)
+    .replace(/\{\{industry\}\}/gi, vars.industry)
+    .replace(/\{\{review_count\}\}|\{review_count\}/gi, vars.reviews)
+    .replace(/\{\{sender_name\}\}|\{sender_name\}/gi, vars.sender)
+    .replace(/\{\{sender_email\}\}|\{sender_email\}/gi, vars.email)
+    .replace(/\{\{days_ago\}\}/gi, '3');
+}
+
+function renderPersonalizedPreview() {
+  const vars = {
+    business: document.getElementById('prev-business').value || 'Sample Business',
+    location: document.getElementById('prev-location').value || 'Auckland',
+    industry: document.getElementById('prev-industry').value || 'Restaurant',
+    reviews:  document.getElementById('prev-reviews').value  || '47',
+    sender:   document.getElementById('prev-sender').value   || 'Sandeep',
+    email:    document.getElementById('prev-email').value    || 'hi@solvinex.com',
+  };
+  const subject = applyVars(document.getElementById('edit-subject').value, vars);
+  const body    = applyVars(document.getElementById('edit-body').value, vars);
+  document.getElementById('prev-subject-out').textContent = subject;
+  const isHTML = document.getElementById('type-html').checked;
+  const outEl = document.getElementById('prev-body-out');
+  if (isHTML) {
+    outEl.style.whiteSpace = 'normal';
+    outEl.innerHTML = renderBrandTemplate(body, vars.industry);
+  } else {
+    outEl.style.whiteSpace = 'pre-wrap';
+    outEl.textContent = body;
+  }
+  document.getElementById('personalized-preview-output').style.display = 'block';
+}
+
 async function saveCampaign() {
   const name = document.getElementById('edit-name').value.trim();
-  const selectedServices = getSelectedServices();
+  const isPlain = document.getElementById('type-plain').checked;
+  const ttype = isPlain ? 'plain_text' : 'html';
+  const tname = isPlain ? (document.getElementById('plain-template-select').value || '') : '';
+  const selectedServices = isPlain ? ['Website Development'] : getSelectedServices();
   const subject = document.getElementById('edit-subject').value.trim();
-  const body = document.getElementById('edit-body').value.trim();
+  const bodyRaw = document.getElementById('edit-body').value.trim();
+  const body = isPlain ? bodyRaw : ensureSocialIconFooter(bodyRaw);
 
-  if (!name || !subject || !body || !selectedServices.length) {
-    showToast('Fill name, services, subject and body', 'error');
+  if (!name || !subject || !body) {
+    showToast('Fill name, subject and body', 'error');
+    return;
+  }
+  if (!isPlain && !selectedServices.length) {
+    showToast('Select at least one service', 'error');
     return;
   }
 
@@ -500,20 +675,16 @@ async function saveCampaign() {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
       id: document.getElementById('edit-id').value || null,
-      name,
-      service: selectedServices.join(', '),
-      subject,
-      body
+      name, service: selectedServices.join(', '), subject, body,
+      template_type: ttype, template_name: tname, followup_days: 0,
     })
   });
 
   const d = await res.json();
-  if (!d.success) {
-    showToast(d.error || 'Error', 'error');
-    return;
-  }
+  if (!d.success) { showToast(d.error || 'Error', 'error'); return; }
 
   showToast('Campaign saved');
+  document.getElementById('edit-body').value = body;
   updateLiveTemplatePreview(name, subject, body, selectedServices);
   loadCampaigns();
 }
@@ -539,6 +710,8 @@ window.addEventListener('DOMContentLoaded', () => {
   initServiceGrid();
   loadTemplates();
   loadCampaigns();
+  loadColdTemplates();
+  onTypeChange(); // set initial state
 });
 </script>
 </body>
